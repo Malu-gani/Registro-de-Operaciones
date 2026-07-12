@@ -120,3 +120,62 @@ export async function closeTrade(
 
   return rowToTrade(data as OperacionRow);
 }
+
+/**
+ * Cierre parcial: reduce la cantidad de la posición abierta y crea una
+ * fila "cerrada" aparte con la porción vendida y su P&L. Son dos
+ * escrituras separadas (no hay transacción atómica en el cliente).
+ */
+export async function closeTradePartial(
+  trade: Trade,
+  cierre: {
+    fechaSalida: string;
+    precioSalida: number;
+    resultadoPnl: number;
+    cantidadCerrada: number;
+  }
+): Promise<{ actualizado: Trade; cerrado: Trade }> {
+  const cantidadRestante = trade.cantidad - cierre.cantidadCerrada;
+
+  const { data: openData, error: openError } = await supabase
+    .from("operaciones")
+    .update({ cantidad: cantidadRestante })
+    .eq("id", trade.id)
+    .select()
+    .single();
+
+  if (openError) throw new Error(openError.message);
+
+  const { data: closedData, error: closedError } = await supabase
+    .from("operaciones")
+    .insert({
+      portafolio_id: trade.portafolioId,
+      activo: trade.activo,
+      tipo_activo: trade.tipoActivo,
+      sub_tipo_activo: trade.subTipoActivo ?? null,
+      divisa: trade.divisa,
+      apalancamiento: trade.apalancamiento ?? null,
+      tipo_operacion: trade.tipoOperacion,
+      fecha_entrada: trade.fechaEntrada,
+      precio_entrada: trade.precioEntrada,
+      precio_stop_loss: trade.precioStopLoss ?? null,
+      precio_take_profit: trade.precioTakeProfit ?? null,
+      cantidad: cierre.cantidadCerrada,
+      fecha_salida: cierre.fechaSalida,
+      precio_salida: cierre.precioSalida,
+      estado: "cerrada",
+      resultado_pnl: cierre.resultadoPnl,
+      ratio_riesgo_beneficio: trade.ratioRiesgoBeneficio ?? null,
+      porcentaje_riesgo_cuenta: trade.porcentajeRiesgoOperacion ?? null,
+      notas: trade.notas ?? null,
+    })
+    .select()
+    .single();
+
+  if (closedError) throw new Error(closedError.message);
+
+  return {
+    actualizado: rowToTrade(openData as OperacionRow),
+    cerrado: rowToTrade(closedData as OperacionRow),
+  };
+}

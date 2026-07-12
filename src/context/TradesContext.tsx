@@ -2,7 +2,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Trade } from "@/types/trading";
-import { closeTrade as closeTradeApi, fetchTrades, insertTrade } from "@/lib/tradesApi";
+import {
+  closeTrade as closeTradeApi,
+  closeTradePartial as closeTradePartialApi,
+  fetchTrades,
+  insertTrade,
+} from "@/lib/tradesApi";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "./PortafoliosContext";
 
@@ -17,6 +22,15 @@ interface TradesContextValue {
   closeTrade: (
     id: string,
     cierre: { fechaSalida: string; precioSalida: number; resultadoPnl: number }
+  ) => Promise<void>;
+  closeTradePartial: (
+    trade: Trade,
+    cierre: {
+      fechaSalida: string;
+      precioSalida: number;
+      resultadoPnl: number;
+      cantidadCerrada: number;
+    }
   ) => Promise<void>;
 }
 
@@ -71,8 +85,34 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     setTrades((prev) => prev.map((t) => (t.id === id ? actualizado : t)));
   };
 
+  const closeTradePartial = async (
+    trade: Trade,
+    cierre: {
+      fechaSalida: string;
+      precioSalida: number;
+      resultadoPnl: number;
+      cantidadCerrada: number;
+    }
+  ) => {
+    if (cierre.cantidadCerrada >= trade.cantidad) {
+      await closeTrade(trade.id, {
+        fechaSalida: cierre.fechaSalida,
+        precioSalida: cierre.precioSalida,
+        resultadoPnl: cierre.resultadoPnl,
+      });
+      return;
+    }
+    const { actualizado, cerrado } = await closeTradePartialApi(trade, cierre);
+    setTrades((prev) => [
+      cerrado,
+      ...prev.map((t) => (t.id === trade.id ? actualizado : t)),
+    ]);
+  };
+
   return (
-    <TradesContext.Provider value={{ trades, loading, error, addTrade, closeTrade }}>
+    <TradesContext.Provider
+      value={{ trades, loading, error, addTrade, closeTrade, closeTradePartial }}
+    >
       {children}
     </TradesContext.Provider>
   );

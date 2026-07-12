@@ -43,30 +43,48 @@ function CerrarOperacionModal({
   trade: Trade;
   onClose: () => void;
 }) {
-  const { closeTrade } = useTrades();
+  const { closeTradePartial } = useTrades();
+  const permiteCierreParcial = trade.tipoActivo === "acciones";
   const [precioSalida, setPrecioSalida] = useState("");
   const [fechaSalida, setFechaSalida] = useState(hoyISO());
+  const [cantidadACerrar, setCantidadACerrar] = useState(String(trade.cantidad));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const precioSalidaNum = parseFloat(precioSalida);
+  const cantidadNum = permiteCierreParcial
+    ? parseFloat(cantidadACerrar)
+    : trade.cantidad;
+  // Acciones y CEDEARs se operan en unidades enteras: no se admiten decimales.
+  const cantidadValida =
+    !isNaN(cantidadNum) &&
+    Number.isInteger(cantidadNum) &&
+    cantidadNum > 0 &&
+    cantidadNum <= trade.cantidad;
   const pnl =
-    !isNaN(precioSalidaNum) && precioSalidaNum > 0
-      ? calcularPnl(trade.tipoOperacion, trade.precioEntrada, precioSalidaNum, trade.cantidad)
+    !isNaN(precioSalidaNum) && precioSalidaNum > 0 && cantidadValida
+      ? calcularPnl(trade.tipoOperacion, trade.precioEntrada, precioSalidaNum, cantidadNum)
       : null;
 
   async function handleConfirmar() {
-    if (isNaN(precioSalidaNum) || precioSalidaNum <= 0 || !fechaSalida || pnl === null) {
-      setError("Completá precio y fecha de salida.");
+    if (
+      isNaN(precioSalidaNum) ||
+      precioSalidaNum <= 0 ||
+      !fechaSalida ||
+      !cantidadValida ||
+      pnl === null
+    ) {
+      setError("Completá precio, fecha y cantidad de salida.");
       return;
     }
     setGuardando(true);
     setError(null);
     try {
-      await closeTrade(trade.id, {
+      await closeTradePartial(trade, {
         fechaSalida,
         precioSalida: precioSalidaNum,
         resultadoPnl: pnl,
+        cantidadCerrada: cantidadNum,
       });
       onClose();
     } catch (e) {
@@ -85,6 +103,35 @@ function CerrarOperacionModal({
           {trade.tipoOperacion === "long" ? "Long" : "Short"} · Entrada{" "}
           {trade.precioEntrada} · Cantidad {formatCantidad(trade.cantidad)}
         </p>
+
+        {permiteCierreParcial && (
+          <div className="mb-3">
+            <label className="mb-1 block text-xs font-medium text-foreground-muted">
+              Cantidad a cerrar (máx. {formatCantidad(trade.cantidad)})
+            </label>
+            <input
+              type="number"
+              step={1}
+              min={1}
+              max={trade.cantidad}
+              value={cantidadACerrar}
+              onChange={(e) => setCantidadACerrar(e.target.value)}
+              onKeyDown={(e) => {
+                // Bloquear separadores decimales: solo unidades enteras.
+                if (e.key === "." || e.key === "," || e.key === "e") {
+                  e.preventDefault();
+                }
+              }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
+            />
+            {!cantidadValida && cantidadACerrar !== "" && (
+              <p className="mt-1 text-xs text-risk-red">
+                Ingresá un número entero entre 1 y{" "}
+                {formatCantidad(trade.cantidad)} (sin decimales).
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mb-3">
           <label className="mb-1 block text-xs font-medium text-foreground-muted">
@@ -195,7 +242,63 @@ function TablaOperacionesAbiertas({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <div className="flex flex-col gap-3 md:hidden">
+        {abiertas.map((trade) => (
+          <div key={trade.id} className="rounded-xl border border-border bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground">{trade.activo}</p>
+                <p className="text-xs text-foreground-muted">
+                  Entrada {trade.precioEntrada}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTradeACerrar(trade)}
+                className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
+              <p className="text-foreground-muted">
+                Divisa <span className="block text-foreground">{trade.divisa}</span>
+              </p>
+              <p className="text-foreground-muted">
+                Tipo{" "}
+                <span className="block capitalize text-foreground">
+                  {trade.tipoOperacion}
+                </span>
+              </p>
+              <p className="text-foreground-muted">
+                Fecha entrada{" "}
+                <span className="block text-foreground">{trade.fechaEntrada}</span>
+              </p>
+              <p className="text-foreground-muted">
+                Cantidad{" "}
+                <span className="block text-foreground">
+                  {formatCantidad(trade.cantidad)}
+                </span>
+              </p>
+              <p className="text-foreground-muted">
+                Stop Loss{" "}
+                <span className="block text-foreground">
+                  {trade.precioStopLoss ?? "—"}
+                </span>
+              </p>
+              <p className="text-foreground-muted">
+                Take Profit{" "}
+                <span className="block text-foreground">
+                  {trade.precioTakeProfit ?? "—"}
+                </span>
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-foreground-muted">
@@ -294,42 +397,83 @@ function TablaPlazosFijosPendientes() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[750px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-foreground-muted">
-            <th className="px-4 py-3 font-medium">Monto</th>
-            <th className="px-4 py-3 font-medium">TNA</th>
-            <th className="px-4 py-3 font-medium">Plazo</th>
-            <th className="px-4 py-3 font-medium">Fecha inicio</th>
-            <th className="px-4 py-3 font-medium">Vencimiento</th>
-            <th className="px-4 py-3 font-medium">Días restantes</th>
-            <th className="px-4 py-3 font-medium">Interés proyectado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pendientes.map((pf) => (
-            <tr key={pf.id} className="border-b border-border last:border-0">
-              <td className="px-4 py-3 font-medium text-foreground">
-                {formatMonto(pf.monto, pf.divisa)}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.tasaTna}%</td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.plazoDias} días</td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.fechaInicio}</td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {pf.fechaVencimiento}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {diasRestantes(pf.fechaVencimiento)}
-              </td>
-              <td className="px-4 py-3 font-medium text-risk-green">
+    <>
+      <div className="flex flex-col gap-3 md:hidden">
+        {pendientes.map((pf) => (
+          <div key={pf.id} className="rounded-xl border border-border bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground">
+                  {formatMonto(pf.monto, pf.divisa)}
+                </p>
+                <p className="text-xs text-foreground-muted">
+                  Vence el {pf.fechaVencimiento}
+                </p>
+              </div>
+              <p className="shrink-0 text-right text-sm font-medium text-risk-green">
                 +{formatMonto(pf.interesEstimado, pf.divisa)}
-              </td>
+              </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
+              <p className="text-foreground-muted">
+                TNA <span className="block text-foreground">{pf.tasaTna}%</span>
+              </p>
+              <p className="text-foreground-muted">
+                Plazo <span className="block text-foreground">{pf.plazoDias} días</span>
+              </p>
+              <p className="text-foreground-muted">
+                Fecha inicio{" "}
+                <span className="block text-foreground">{pf.fechaInicio}</span>
+              </p>
+              <p className="text-foreground-muted">
+                Días restantes{" "}
+                <span className="block text-foreground">
+                  {diasRestantes(pf.fechaVencimiento)}
+                </span>
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
+        <table className="w-full min-w-[750px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-foreground-muted">
+              <th className="px-4 py-3 font-medium">Monto</th>
+              <th className="px-4 py-3 font-medium">TNA</th>
+              <th className="px-4 py-3 font-medium">Plazo</th>
+              <th className="px-4 py-3 font-medium">Fecha inicio</th>
+              <th className="px-4 py-3 font-medium">Vencimiento</th>
+              <th className="px-4 py-3 font-medium">Días restantes</th>
+              <th className="px-4 py-3 font-medium">Interés proyectado</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {pendientes.map((pf) => (
+              <tr key={pf.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium text-foreground">
+                  {formatMonto(pf.monto, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.tasaTna}%</td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.plazoDias} días</td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.fechaInicio}</td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {pf.fechaVencimiento}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {diasRestantes(pf.fechaVencimiento)}
+                </td>
+                <td className="px-4 py-3 font-medium text-risk-green">
+                  +{formatMonto(pf.interesEstimado, pf.divisa)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
