@@ -122,10 +122,10 @@ export default function AccionesForm() {
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
         <h2 className="text-sm font-semibold text-foreground">
-          Nueva Operación — Acciones
+          Nueva operación — Acciones
         </h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {selectorField}
 
           <AssetAutocomplete
@@ -233,12 +233,12 @@ export default function AccionesForm() {
           disabled={guardando}
           className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
         >
-          {guardando ? "Guardando..." : "Guardar Operación"}
+          {guardando ? "Guardando..." : "Guardar operación"}
         </button>
 
         {saved && (
           <p className="text-xs text-risk-green">
-            Operación guardada correctamente, visualizala en{" "}
+            Operación guardada correctamente, visualícela en{" "}
             <Link
               href={`/posiciones-abiertas?tab=${esCedear ? "cedears" : "acciones"}`}
               className="font-semibold underline"

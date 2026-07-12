@@ -45,7 +45,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setError(
-        "Supabase no está configurado. Completá .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reiniciá el servidor (npm run dev)."
+        "Supabase no está configurado. Complete .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reinicie el servidor (npm run dev)."
       );
       setLoading(false);
       return;
@@ -71,7 +71,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
       portafolioId ??
       (portafolioActivoId !== TODOS_LOS_PORTAFOLIOS ? portafolioActivoId : undefined);
     if (!idEfectivo) {
-      throw new Error("Elegí en qué portafolio guardar la operación.");
+      throw new Error("Elija en qué portafolio guardar la operación.");
     }
     const nuevo = await insertTrade(trade, idEfectivo);
     setTrades((prev) => [nuevo, ...prev]);

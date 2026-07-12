@@ -15,7 +15,7 @@ export default async function SignupPage({
           Crear cuenta
         </h1>
         <p className="mb-6 text-sm text-foreground-muted">
-          Registrate para empezar tu diario de trading.
+          Regístrese para empezar su diario de trading.
         </p>
 
         {params.error && (
@@ -81,7 +81,7 @@ export default async function SignupPage({
         </form>
 
         <p className="mt-4 text-center text-sm text-foreground-muted">
-          ¿Ya tenés cuenta?{" "}
+          ¿Ya tiene una cuenta?{" "}
           <Link href="/login" className="text-brand underline">
             Iniciar sesión
           </Link>

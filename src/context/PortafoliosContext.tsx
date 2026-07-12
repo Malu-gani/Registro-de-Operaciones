@@ -40,7 +40,7 @@ export function PortafoliosProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setError(
-        "Supabase no está configurado. Completá .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reiniciá el servidor (npm run dev)."
+        "Supabase no está configurado. Complete .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reinicie el servidor (npm run dev)."
       );
       setLoading(false);
       return;
