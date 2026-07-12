@@ -239,7 +239,10 @@ export default function AccionesForm() {
         {saved && (
           <p className="text-xs text-risk-green">
             Operación guardada correctamente, visualizala en{" "}
-            <Link href="/posiciones-abiertas" className="font-semibold underline">
+            <Link
+              href={`/posiciones-abiertas?tab=${esCedear ? "cedears" : "acciones"}`}
+              className="font-semibold underline"
+            >
               Posiciones Abiertas
             </Link>
             .
