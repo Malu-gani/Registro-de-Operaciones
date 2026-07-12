@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTrades } from "@/context/TradesContext";
 import EquityCurve from "@/components/EquityCurve";
 
@@ -26,9 +27,13 @@ function KpiCard({
         : "text-foreground";
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
+    <div className="flex min-w-0 flex-col rounded-xl border border-border bg-surface p-4">
       <p className="text-xs text-foreground-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
+      <p
+        className={`mt-1 break-words text-xl font-semibold leading-tight tabular-nums sm:text-2xl ${toneClass}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -110,11 +115,14 @@ export default function DashboardPage() {
             Operaciones abiertas
           </h2>
           <p className="text-sm text-foreground-muted">
-            Tenés {abiertas.length} operación(es) abierta(s). Vas a{" "}
-            <a href="/posiciones-abiertas" className="text-brand underline">
+            Tienes {abiertas.length}{" "}
+            {abiertas.length === 1 ? "operación abierta" : "operaciones abiertas"}.
+            Puedes dirigirte a{" "}
+            <Link href="/posiciones-abiertas" className="text-brand underline">
               Posiciones Abiertas
-            </a>{" "}
-            para verlas en detalle.
+            </Link>{" "}
+            para {abiertas.length === 1 ? "visualizarla" : "visualizarlas"} en
+            detalle.
           </p>
         </div>
       )}
