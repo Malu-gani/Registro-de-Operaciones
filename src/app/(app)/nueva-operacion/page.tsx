@@ -7,8 +7,8 @@ import PlazoFijoForm from "@/components/forms/PlazoFijoForm";
 
 const tabs = [
   { id: "acciones", label: "Acciones" },
-  { id: "crypto", label: "Crypto" },
-  { id: "plazo-fijo", label: "Plazo Fijo" },
+  { id: "crypto", label: "Cripto" },
+  { id: "plazo-fijo", label: "Plazo fijo" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -18,7 +18,7 @@ export default function NuevaOperacionPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex gap-2 border-b border-border">
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {tabs.map((t) => (
           <button
             key={t.id}

@@ -258,7 +258,7 @@ export default function HistorialPage() {
         Historial
       </h1>
 
-      <div className="mb-6 flex gap-2 border-b border-border">
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {tabs.map((t) => (
           <button
             key={t.id}

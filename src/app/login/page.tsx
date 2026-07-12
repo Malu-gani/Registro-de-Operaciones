@@ -15,7 +15,7 @@ export default async function LoginPage({
           Iniciar sesión
         </h1>
         <p className="mb-6 text-sm text-foreground-muted">
-          Accedé a tu diario de trading.
+          Acceda a su diario de trading.
         </p>
 
         {params.message && (
@@ -66,9 +66,9 @@ export default async function LoginPage({
         </form>
 
         <p className="mt-4 text-center text-sm text-foreground-muted">
-          ¿No tenés cuenta?{" "}
+          ¿No tiene una cuenta?{" "}
           <Link href="/signup" className="text-brand underline">
-            Registrate
+            Regístrese
           </Link>
         </p>
       </div>

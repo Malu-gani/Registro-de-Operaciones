@@ -63,12 +63,12 @@ export default function RiskPanel({
     return (
       <div className="rounded-xl border border-border bg-surface p-6">
         <h2 className="text-sm font-semibold text-foreground">
-          Análisis de Riesgo
+          Análisis de riesgo
         </h2>
         <p className="mt-4 text-sm text-foreground-muted">
-          Completá cantidad/monto y precio de entrada para ver el análisis
-          en vivo. Stop Loss y Take Profit son opcionales, pero si los
-          cargás vas a ver también el ratio riesgo/beneficio.
+          Complete la cantidad/monto y el precio de entrada para ver el
+          análisis en vivo. Stop Loss y Take Profit son opcionales, pero si
+          los completa verá también el ratio riesgo/beneficio.
         </p>
       </div>
     );
@@ -87,7 +87,7 @@ export default function RiskPanel({
     return (
       <div className="rounded-xl border border-risk-red-border bg-risk-red-bg p-6">
         <h2 className="text-sm font-semibold text-risk-red">
-          Análisis de Riesgo
+          Análisis de riesgo
         </h2>
         <p className="mt-4 text-sm text-risk-red">{error}</p>
       </div>
@@ -116,7 +116,7 @@ export default function RiskPanel({
         <p className="text-xs text-foreground-muted">
           Tamaño de posición
         </p>
-        <p className="mt-1 text-2xl font-semibold text-foreground">
+        <p className="mt-1 break-words text-2xl font-semibold text-foreground">
           {analysis.tamañoPosicion.toFixed(6)}{" "}
           <span className="text-sm font-normal text-foreground-muted">
             unidades
@@ -129,7 +129,7 @@ export default function RiskPanel({
 
       <div>
         <div className="flex items-center justify-between text-xs text-foreground-muted">
-          <span>Ratio Riesgo / Beneficio</span>
+          <span>Ratio riesgo / beneficio</span>
           {tieneRR ? (
             <span
               className={`rounded-full border px-2 py-0.5 font-medium ${rrBadgeClasses[nivelRR!]}`}
@@ -138,7 +138,7 @@ export default function RiskPanel({
             </span>
           ) : (
             <span className="text-foreground-muted">
-              Cargá Stop Loss y Take Profit para verlo
+              Cargue Stop Loss y Take Profit para verlo
             </span>
           )}
         </div>
@@ -171,7 +171,7 @@ export default function RiskPanel({
             </>
           ) : (
             <p className="mt-1 text-xs text-risk-red">
-              Cargá el Stop Loss para verla
+              Cargue el Stop Loss para verla
             </p>
           )}
         </div>
@@ -191,7 +191,7 @@ export default function RiskPanel({
             </>
           ) : (
             <p className="mt-1 text-xs text-risk-green">
-              Cargá el Take Profit para verla
+              Cargue el Take Profit para verla
             </p>
           )}
         </div>
@@ -209,7 +209,7 @@ export default function RiskPanel({
 
       {nivelRR === "alto" && (
         <div className="rounded-lg border p-3 text-sm bg-risk-red-bg text-risk-red border-risk-red-border">
-          ⚠ Estás arriesgando más de lo que podrías ganar (R:R menor a 1).
+          ⚠ Está arriesgando más de lo que podría ganar (R:R menor a 1).
         </div>
       )}
     </div>

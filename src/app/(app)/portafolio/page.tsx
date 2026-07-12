@@ -114,7 +114,7 @@ function NuevoMovimientoForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4"
+      className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2"
     >
       {selectorField}
 
@@ -184,7 +184,7 @@ function TablaMovimientos({ movimientos }: { movimientos: MovimientoFuturos[] })
   if (movimientos.length === 0) {
     return (
       <p className="text-sm text-foreground-muted">
-        Todavía no cargaste movimientos de la cuenta de futuros.
+        Todavía no cargó movimientos de la cuenta de futuros.
       </p>
     );
   }
@@ -260,25 +260,25 @@ function SeccionesPortafolio({
             titulo="CEDEARs (ARS)"
             data={cedears}
             divisa="ARS"
-            mensajeVacio="No tenés CEDEARs abiertos actualmente."
+            mensajeVacio="No tiene CEDEARs abiertos actualmente."
           />
           <SeccionPie
             titulo="Acciones (USD)"
             data={accionesUsd}
             divisa="USD"
-            mensajeVacio="No tenés acciones en USD abiertas actualmente."
+            mensajeVacio="No tiene acciones en USD abiertas actualmente."
           />
         </div>
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold text-foreground">Crypto</h2>
+        <h2 className="text-sm font-semibold text-foreground">Cripto</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <SeccionPie
             titulo="Spot (USDT)"
             data={cryptoSpot}
             divisa="USDT"
-            mensajeVacio="No tenés posiciones spot abiertas actualmente."
+            mensajeVacio="No tiene posiciones spot abiertas actualmente."
           />
 
           <div className="flex flex-col gap-4">
@@ -399,7 +399,7 @@ function EliminarPortafolioModal({
           <div className="mt-4 rounded-md border border-risk-red-border bg-risk-red-bg px-3 py-3 text-sm text-risk-red">
             Este portafolio tiene {abiertas.length} operación
             {abiertas.length === 1 ? "" : "es"} abierta
-            {abiertas.length === 1 ? "" : "s"}. Cerrala
+            {abiertas.length === 1 ? "" : "s"}. Ciérrela
             {abiertas.length === 1 ? "" : "s"} en{" "}
             <span className="font-medium">Posiciones Abiertas</span> antes de poder
             borrar este portafolio.
@@ -590,7 +590,7 @@ export default function PortafolioPage() {
         <>
           {portafolios.length === 0 && (
             <p className="text-sm text-foreground-muted">
-              Todavía no tenés portafolios creados.
+              Todavía no tiene portafolios creados.
             </p>
           )}
           {portafolios.map((p) => (

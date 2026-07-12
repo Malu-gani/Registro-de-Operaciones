@@ -24,7 +24,7 @@ export function usePortafolioDestino() {
         value={seleccionado}
         onChange={(e) => setSeleccionado(e.target.value)}
       >
-        <option value="">Elegí un portafolio...</option>
+        <option value="">Elija un portafolio...</option>
         {portafolios.map((p) => (
           <option key={p.id} value={p.id}>
             {p.nombre}

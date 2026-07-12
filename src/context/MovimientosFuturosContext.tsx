@@ -35,7 +35,7 @@ export function MovimientosFuturosProvider({
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setError(
-        "Supabase no está configurado. Completá .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reiniciá el servidor (npm run dev)."
+        "Supabase no está configurado. Complete .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reinicie el servidor (npm run dev)."
       );
       setLoading(false);
       return;
@@ -63,7 +63,7 @@ export function MovimientosFuturosProvider({
       portafolioId ??
       (portafolioActivoId !== TODOS_LOS_PORTAFOLIOS ? portafolioActivoId : undefined);
     if (!idEfectivo) {
-      throw new Error("Elegí en qué portafolio guardar el movimiento.");
+      throw new Error("Elija en qué portafolio guardar el movimiento.");
     }
     const nuevo = await insertMovimientoFuturos(movimiento, idEfectivo);
     setMovimientos((prev) => [nuevo, ...prev]);

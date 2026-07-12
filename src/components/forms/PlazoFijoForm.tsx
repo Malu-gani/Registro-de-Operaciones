@@ -125,10 +125,10 @@ export default function PlazoFijoForm() {
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
         <h2 className="text-sm font-semibold text-foreground">
-          Nuevo Plazo Fijo
+          Nuevo plazo fijo
         </h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {selectorField}
 
           <label className="flex flex-col gap-1">
@@ -208,12 +208,12 @@ export default function PlazoFijoForm() {
           disabled={guardando}
           className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
         >
-          {guardando ? "Guardando..." : "Guardar Plazo Fijo"}
+          {guardando ? "Guardando..." : "Guardar plazo fijo"}
         </button>
 
         {saved && (
           <p className="text-xs text-risk-green">
-            Plazo fijo guardado correctamente, visualizalo en{" "}
+            Plazo fijo guardado correctamente, visualícelo en{" "}
             <Link
               href="/posiciones-abiertas?tab=plazos-fijos"
               className="font-semibold underline"
@@ -231,7 +231,7 @@ export default function PlazoFijoForm() {
         <h2 className="text-sm font-semibold text-foreground">Resumen</h2>
         {!resumen ? (
           <p className="mt-4 text-sm text-foreground-muted">
-            Completá monto, TNA, plazo y fecha de inicio para ver el interés
+            Complete monto, TNA, plazo y fecha de inicio para ver el interés
             estimado.
           </p>
         ) : (

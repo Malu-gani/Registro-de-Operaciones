@@ -5,5 +5,5 @@ export function unirFaltantes(items: string[]): string {
 }
 
 export function mensajeCamposFaltantes(items: string[]): string {
-  return `Completá los siguientes campos obligatorios: ${unirFaltantes(items)}.`;
+  return `Complete los siguientes campos obligatorios: ${unirFaltantes(items)}.`;
 }

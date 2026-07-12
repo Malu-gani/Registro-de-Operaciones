@@ -74,7 +74,7 @@ function CerrarOperacionModal({
       !cantidadValida ||
       pnl === null
     ) {
-      setError("Completá precio, fecha y cantidad de salida.");
+      setError("Complete precio, fecha y cantidad de salida.");
       return;
     }
     setGuardando(true);
@@ -126,7 +126,7 @@ function CerrarOperacionModal({
             />
             {!cantidadValida && cantidadACerrar !== "" && (
               <p className="mt-1 text-xs text-risk-red">
-                Ingresá un número entero entre 1 y{" "}
+                Ingrese un número entero entre 1 y{" "}
                 {formatCantidad(trade.cantidad)} (sin decimales).
               </p>
             )}
@@ -391,7 +391,7 @@ function TablaPlazosFijosPendientes() {
   if (pendientes.length === 0) {
     return (
       <p className="text-sm text-foreground-muted">
-        No tenés plazos fijos pendientes de vencimiento en este momento.
+        No tiene plazos fijos pendientes de vencimiento en este momento.
       </p>
     );
   }
@@ -480,8 +480,8 @@ function TablaPlazosFijosPendientes() {
 const tabs = [
   { id: "acciones", label: "Acciones" },
   { id: "cedears", label: "CEDEARs" },
-  { id: "crypto-futuros", label: "Crypto Futuros" },
-  { id: "crypto-spot", label: "Crypto Spot" },
+  { id: "crypto-futuros", label: "Cripto futuros" },
+  { id: "crypto-spot", label: "Cripto spot" },
   { id: "plazos-fijos", label: "Plazos Fijos" },
 ] as const;
 
@@ -524,28 +524,28 @@ export default function PosicionesAbiertasPage() {
         <TablaOperacionesAbiertas
           tipoActivo="acciones"
           subTipoActivo="usd"
-          mensajeVacio="No tenés posiciones abiertas de Acciones en este momento."
+          mensajeVacio="No tiene posiciones abiertas de Acciones en este momento."
         />
       )}
       {tab === "cedears" && (
         <TablaOperacionesAbiertas
           tipoActivo="acciones"
           subTipoActivo="cedear"
-          mensajeVacio="No tenés posiciones abiertas de CEDEARs en este momento."
+          mensajeVacio="No tiene posiciones abiertas de CEDEARs en este momento."
         />
       )}
       {tab === "crypto-futuros" && (
         <TablaOperacionesAbiertas
           tipoActivo="crypto"
           subTipoActivo="futuros"
-          mensajeVacio="No tenés posiciones abiertas de Crypto Futuros en este momento."
+          mensajeVacio="No tiene posiciones abiertas de Cripto futuros en este momento."
         />
       )}
       {tab === "crypto-spot" && (
         <TablaOperacionesAbiertas
           tipoActivo="crypto"
           subTipoActivo="spot"
-          mensajeVacio="No tenés posiciones abiertas de Crypto Spot en este momento."
+          mensajeVacio="No tiene posiciones abiertas de Cripto spot en este momento."
         />
       )}
       {tab === "plazos-fijos" && <TablaPlazosFijosPendientes />}
