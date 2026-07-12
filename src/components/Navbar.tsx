@@ -102,21 +102,21 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-4 sm:px-6">
       <div className="flex items-center gap-2">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-sm font-semibold text-brand-foreground">
           T
         </span>
-        <span className="text-sm font-semibold text-foreground">
+        <span className="hidden text-sm font-semibold text-foreground sm:inline">
           Diario de Trading
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
         <select
           value={portafolioActivoId}
           onChange={handleChange}
-          className="rounded-md border border-border bg-surface-muted px-3 py-1.5 text-sm text-foreground outline-none"
+          className="min-w-0 max-w-[45vw] rounded-md border border-border bg-surface-muted px-3 py-1.5 text-sm text-foreground outline-none sm:max-w-none"
         >
           <option value={TODOS_LOS_PORTAFOLIOS}>Todos los portafolios</option>
           {portafolios.map((p) => (
@@ -127,7 +127,9 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
           <option value={CREAR_PORTAFOLIO}>+ Crear portafolio...</option>
         </select>
 
-        <span className="text-xs text-foreground-muted">{userEmail}</span>
+        <span className="hidden text-xs text-foreground-muted sm:inline">
+          {userEmail}
+        </span>
 
         <form action={signOut}>
           <button
