@@ -15,14 +15,23 @@ export interface PuntoEquity {
   valor: number;
 }
 
-export default function EquityCurve({ puntos }: { puntos: PuntoEquity[] }) {
+export default function EquityCurve({
+  puntos,
+  formatValor,
+}: {
+  puntos: PuntoEquity[];
+  /** Formatea el valor del tooltip (por defecto, dos decimales sin símbolo). */
+  formatValor?: (valor: number) => string;
+}) {
   if (puntos.length < 2) {
     return (
       <p className="text-sm text-foreground-muted">
-        Necesitás al menos dos operaciones cerradas para ver la curva.
+        Se necesitan al menos dos operaciones cerradas para ver la curva.
       </p>
     );
   }
+
+  const formatTooltip = formatValor ?? ((valor: number) => valor.toFixed(2));
 
   const ultimo = puntos[puntos.length - 1].valor;
   const color = ultimo >= 0 ? "var(--risk-green)" : "var(--risk-red)";
@@ -53,7 +62,7 @@ export default function EquityCurve({ puntos }: { puntos: PuntoEquity[] }) {
               color: "var(--foreground)",
               fontSize: 12,
             }}
-            formatter={(value) => [Number(value).toFixed(2), "P&L acumulado"]}
+            formatter={(value) => [formatTooltip(Number(value)), "P&L acumulado"]}
             labelFormatter={(label) => `Fecha: ${label}`}
           />
           <Area
