@@ -1,13 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Trade } from "@/types/trading";
-import {
-  closeTrade as closeTradeApi,
-  closeTradePartial as closeTradePartialApi,
-  fetchTrades,
-  insertTrade,
-} from "@/lib/tradesApi";
+import { abrirOperacion, cerrarOperacion, fetchTrades } from "@/lib/tradesApi";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "./PortafoliosContext";
 
@@ -42,7 +37,10 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const portafolioId =
+    portafolioActivoId === TODOS_LOS_PORTAFOLIOS ? undefined : portafolioActivoId;
+
+  const cargar = useCallback(async () => {
     if (!isSupabaseConfigured) {
       setError(
         "Supabase no está configurado. Complete .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reinicie el servidor (npm run dev)."
@@ -50,30 +48,30 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-
     setLoading(true);
-    const portafolioId =
-      portafolioActivoId === TODOS_LOS_PORTAFOLIOS ? undefined : portafolioActivoId;
+    try {
+      setTrades(await fetchTrades(portafolioId));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al cargar operaciones");
+    } finally {
+      setLoading(false);
+    }
+  }, [portafolioId]);
 
-    fetchTrades(portafolioId)
-      .then(setTrades)
-      .catch((e) =>
-        setError(e instanceof Error ? e.message : "Error al cargar operaciones")
-      )
-      .finally(() => setLoading(false));
-  }, [portafolioActivoId]);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   const addTrade = async (
     trade: Omit<Trade, "id" | "portafolioId">,
-    portafolioId?: string
+    portafolioIdArg?: string
   ) => {
-    const idEfectivo =
-      portafolioId ??
-      (portafolioActivoId !== TODOS_LOS_PORTAFOLIOS ? portafolioActivoId : undefined);
+    const idEfectivo = portafolioIdArg ?? portafolioId;
     if (!idEfectivo) {
       throw new Error("Elija en qué portafolio guardar la operación.");
     }
-    const nuevo = await insertTrade(trade, idEfectivo);
+    const nuevo = await abrirOperacion(trade, idEfectivo);
     setTrades((prev) => [nuevo, ...prev]);
   };
 
@@ -81,8 +79,14 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
     id: string,
     cierre: { fechaSalida: string; precioSalida: number; resultadoPnl: number }
   ) => {
-    const actualizado = await closeTradeApi(id, cierre);
-    setTrades((prev) => prev.map((t) => (t.id === id ? actualizado : t)));
+    // Cierre total: la cantidad la resuelve la función del servidor.
+    const actual = trades.find((t) => t.id === id);
+    await cerrarOperacion(id, {
+      precioSalida: cierre.precioSalida,
+      fechaSalida: cierre.fechaSalida,
+      cantidadCerrada: actual?.cantidad ?? 0,
+    });
+    await cargar();
   };
 
   const closeTradePartial = async (
@@ -94,19 +98,12 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
       cantidadCerrada: number;
     }
   ) => {
-    if (cierre.cantidadCerrada >= trade.cantidad) {
-      await closeTrade(trade.id, {
-        fechaSalida: cierre.fechaSalida,
-        precioSalida: cierre.precioSalida,
-        resultadoPnl: cierre.resultadoPnl,
-      });
-      return;
-    }
-    const { actualizado, cerrado } = await closeTradePartialApi(trade, cierre);
-    setTrades((prev) => [
-      cerrado,
-      ...prev.map((t) => (t.id === trade.id ? actualizado : t)),
-    ]);
+    await cerrarOperacion(trade.id, {
+      precioSalida: cierre.precioSalida,
+      fechaSalida: cierre.fechaSalida,
+      cantidadCerrada: cierre.cantidadCerrada,
+    });
+    await cargar();
   };
 
   return (

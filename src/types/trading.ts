@@ -118,6 +118,7 @@ export interface PlazoFijo {
   fechaInicio: string;
   fechaVencimiento: string;
   interesEstimado: number;
+  estado: "pendiente" | "liquidado";
   notas?: string;
 }
 

@@ -2,7 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { CuentaId, MovimientoCuenta, SaldoCuenta } from "@/types/trading";
-import { fetchSaldos } from "@/lib/cuentasApi";
+import {
+  fetchSaldos,
+  registrarMovimientoCuenta,
+  setSaldoInicial as setSaldoInicialApi,
+} from "@/lib/cuentasApi";
 import { fetchMovimientosCuenta } from "@/lib/movimientosCuentaApi";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "./PortafoliosContext";
@@ -14,6 +18,21 @@ interface CuentasContextValue {
   error: string | null;
   /** Disponible de una cuenta en un portafolio (0 si no tiene saldo cargado). */
   disponibleDe: (portafolioId: string, cuenta: CuentaId) => number;
+  /** Fija el saldo inicial de una cuenta ("cargá tus saldos de hoy"). */
+  setSaldoInicial: (
+    portafolioId: string,
+    cuenta: CuentaId,
+    monto: number
+  ) => Promise<void>;
+  /** Depósito o retiro manual sobre el Disponible de una cuenta. */
+  depositarRetirar: (
+    portafolioId: string,
+    cuenta: CuentaId,
+    tipo: "deposito" | "retiro",
+    monto: number,
+    fecha: string,
+    notas?: string
+  ) => Promise<void>;
   /** Vuelve a leer saldos y movimientos (tras un depósito/retiro/operación). */
   refrescar: () => Promise<void>;
 }
@@ -64,9 +83,41 @@ export function CuentasProvider({ children }: { children: React.ReactNode }) {
     [saldos]
   );
 
+  const setSaldoInicial = useCallback(
+    async (pId: string, cuenta: CuentaId, monto: number) => {
+      await setSaldoInicialApi(pId, cuenta, monto);
+      await cargar();
+    },
+    [cargar]
+  );
+
+  const depositarRetirar = useCallback(
+    async (
+      pId: string,
+      cuenta: CuentaId,
+      tipo: "deposito" | "retiro",
+      monto: number,
+      fecha: string,
+      notas?: string
+    ) => {
+      await registrarMovimientoCuenta(pId, cuenta, tipo, monto, fecha, notas);
+      await cargar();
+    },
+    [cargar]
+  );
+
   return (
     <CuentasContext.Provider
-      value={{ saldos, movimientos, loading, error, disponibleDe, refrescar: cargar }}
+      value={{
+        saldos,
+        movimientos,
+        loading,
+        error,
+        disponibleDe,
+        setSaldoInicial,
+        depositarRetirar,
+        refrescar: cargar,
+      }}
     >
       {children}
     </CuentasContext.Provider>

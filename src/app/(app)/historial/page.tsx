@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
+import { useCuentas } from "@/context/CuentasContext";
 import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
@@ -152,11 +153,23 @@ function TablaOperaciones() {
 }
 
 function TablaPlazosFijos() {
-  const { plazosFijos, loading, error } = usePlazosFijos();
+  const { plazosFijos, loading, error, liquidarPlazoFijo } = usePlazosFijos();
+  const { refrescar } = useCuentas();
+  const [liquidandoId, setLiquidandoId] = useState<string | null>(null);
 
   const vencidos = plazosFijos
     .filter((pf) => plazoFijoVencido(pf.fechaVencimiento))
     .sort((a, b) => b.fechaVencimiento.localeCompare(a.fechaVencimiento));
+
+  const liquidar = async (id: string) => {
+    setLiquidandoId(id);
+    try {
+      await liquidarPlazoFijo(id);
+      await refrescar();
+    } finally {
+      setLiquidandoId(null);
+    }
+  };
 
   if (error) {
     return (
@@ -191,6 +204,7 @@ function TablaPlazosFijos() {
             <th className="px-4 py-3 font-medium">Vencimiento</th>
             <th className="px-4 py-3 font-medium">Interés estimado</th>
             <th className="px-4 py-3 font-medium">Total al vencimiento</th>
+            <th className="px-4 py-3 font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -210,6 +224,22 @@ function TablaPlazosFijos() {
               </td>
               <td className="px-4 py-3 font-medium text-foreground">
                 {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
+              </td>
+              <td className="px-4 py-3 text-right">
+                {pf.estado === "liquidado" ? (
+                  <span className="rounded-full bg-risk-green-bg px-2 py-0.5 text-xs font-medium text-risk-green">
+                    Liquidado
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => liquidar(pf.id)}
+                    disabled={liquidandoId === pf.id}
+                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
+                  >
+                    {liquidandoId === pf.id ? "Liquidando..." : "Liquidar"}
+                  </button>
+                )}
               </td>
             </tr>
           ))}

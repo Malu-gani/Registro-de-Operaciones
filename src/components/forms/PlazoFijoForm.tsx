@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
+import { useCuentas } from "@/context/CuentasContext";
 import { calcularPlazoFijo } from "@/utils/riskCalculations";
+import type { CuentaId } from "@/types/trading";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
+import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
 interface FormState {
   // monto y tasaTna se guardan como texto para poder tipear decimales que
@@ -42,10 +45,12 @@ const formatoARS = new Intl.NumberFormat("es-AR", {
 
 export default function PlazoFijoForm() {
   const { addPlazoFijo } = usePlazosFijos();
+  const { refrescar } = useCuentas();
   const { portafolioId, selectorField } = usePortafolioDestino();
   const [data, setData] = useState<FormState>(estadoInicial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fondosCuenta, setFondosCuenta] = useState<CuentaId | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   const setField = <K extends keyof FormState>(
@@ -88,6 +93,7 @@ export default function PlazoFijoForm() {
       return;
     }
     setGuardando(true);
+    setFondosCuenta(null);
     try {
       const { interesEstimado, fechaVencimiento } = calcularPlazoFijo(
         montoNum,
@@ -108,12 +114,18 @@ export default function PlazoFijoForm() {
         },
         portafolioId
       );
+      await refrescar();
       setError(null);
       setSaved(true);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "No se pudo guardar el plazo fijo."
-      );
+      const cf = cuentaFaltante(e);
+      if (cf) {
+        setFondosCuenta(cf);
+      } else {
+        setError(
+          e instanceof Error ? e.message : "No se pudo guardar el plazo fijo."
+        );
+      }
       setSaved(false);
     } finally {
       setGuardando(false);
@@ -232,6 +244,7 @@ export default function PlazoFijoForm() {
           </p>
         )}
         {error && <p className="text-xs text-risk-red">{error}</p>}
+        {fondosCuenta && <MensajeFondosInsuficientes cuenta={fondosCuenta} />}
       </form>
 
       <div className="rounded-xl border border-border bg-surface p-6">

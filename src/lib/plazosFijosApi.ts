@@ -13,6 +13,7 @@ interface PlazoFijoRow {
   fecha_inicio: string;
   fecha_vencimiento: string;
   interes_estimado: number;
+  estado: "pendiente" | "liquidado" | null;
   notas: string | null;
 }
 
@@ -27,6 +28,7 @@ function rowToPlazoFijo(row: PlazoFijoRow): PlazoFijo {
     fechaInicio: row.fecha_inicio,
     fechaVencimiento: row.fecha_vencimiento,
     interesEstimado: row.interes_estimado,
+    estado: row.estado ?? "pendiente",
     notas: row.notas ?? undefined,
   };
 }
@@ -48,27 +50,42 @@ export async function fetchPlazosFijos(portafolioId?: string): Promise<PlazoFijo
   return (data as PlazoFijoRow[]).map(rowToPlazoFijo);
 }
 
+/**
+ * Abre un plazo fijo vía la función `abrir_plazo_fijo` (RPC): valida fondos,
+ * inserta el plazo y debita el capital de la cuenta ARS/USD, atómico. Puede
+ * lanzar 'FONDOS_INSUFICIENTES:<cuenta>'. Devuelve el plazo creado.
+ */
 export async function insertPlazoFijo(
-  plazoFijo: Omit<PlazoFijo, "id" | "portafolioId">,
+  plazoFijo: Omit<PlazoFijo, "id" | "portafolioId" | "estado">,
   portafolioId: string
 ): Promise<PlazoFijo> {
-  const { data, error } = await supabase
-    .from("plazos_fijos")
-    .insert({
-      portafolio_id: portafolioId,
-      monto: plazoFijo.monto,
-      divisa: plazoFijo.divisa,
-      tasa_tna: plazoFijo.tasaTna,
-      plazo_dias: plazoFijo.plazoDias,
-      fecha_inicio: plazoFijo.fechaInicio,
-      fecha_vencimiento: plazoFijo.fechaVencimiento,
-      interes_estimado: plazoFijo.interesEstimado,
-      notas: plazoFijo.notas ?? null,
-    })
-    .select()
-    .single();
+  const { data: id, error } = await supabase.rpc("abrir_plazo_fijo", {
+    p_portafolio_id: portafolioId,
+    p_monto: plazoFijo.monto,
+    p_divisa: plazoFijo.divisa,
+    p_tasa_tna: plazoFijo.tasaTna,
+    p_plazo_dias: plazoFijo.plazoDias,
+    p_fecha_inicio: plazoFijo.fechaInicio,
+    p_fecha_vencimiento: plazoFijo.fechaVencimiento,
+    p_interes_estimado: plazoFijo.interesEstimado,
+    p_notas: plazoFijo.notas ?? null,
+  });
 
   if (error) throw new Error(error.message);
 
-  return rowToPlazoFijo(data as PlazoFijoRow);
+  const { data: row, error: fetchError } = await supabase
+    .from("plazos_fijos")
+    .select("*")
+    .eq("id", id as string)
+    .single();
+
+  if (fetchError) throw new Error(fetchError.message);
+
+  return rowToPlazoFijo(row as PlazoFijoRow);
+}
+
+/** Liquida un plazo fijo: acredita capital + interés a la cuenta ARS/USD. */
+export async function liquidarPlazoFijo(id: string): Promise<void> {
+  const { error } = await supabase.rpc("liquidar_plazo_fijo", { p_id: id });
+  if (error) throw new Error(error.message);
 }

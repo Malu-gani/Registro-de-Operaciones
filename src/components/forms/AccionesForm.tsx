@@ -3,13 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTrades } from "@/context/TradesContext";
+import { useCuentas } from "@/context/CuentasContext";
 import { analizarRiesgoPosicionFija } from "@/utils/riskCalculations";
-import type { SubTipoAccion } from "@/types/trading";
+import type { CuentaId, SubTipoAccion } from "@/types/trading";
 import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
+import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
 interface FormState {
   activo: string;
@@ -38,10 +40,12 @@ const estadoInicial: FormState = {
 
 export default function AccionesForm() {
   const { addTrade } = useTrades();
+  const { refrescar } = useCuentas();
   const { portafolioId, selectorField } = usePortafolioDestino();
   const [data, setData] = useState<FormState>(estadoInicial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fondosCuenta, setFondosCuenta] = useState<CuentaId | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   const setField = <K extends keyof FormState>(
@@ -89,6 +93,7 @@ export default function AccionesForm() {
       return;
     }
     setGuardando(true);
+    setFondosCuenta(null);
     try {
       const analysis = analizar();
       await addTrade(
@@ -110,12 +115,18 @@ export default function AccionesForm() {
         },
         portafolioId
       );
+      await refrescar();
       setError(null);
       setSaved(true);
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "No se pudo guardar la operación."
-      );
+      const cf = cuentaFaltante(e);
+      if (cf) {
+        setFondosCuenta(cf);
+      } else {
+        setError(
+          e instanceof Error ? e.message : "No se pudo guardar la operación."
+        );
+      }
       setSaved(false);
     } finally {
       setGuardando(false);
@@ -253,6 +264,7 @@ export default function AccionesForm() {
           </p>
         )}
         {error && <p className="text-xs text-risk-red">{error}</p>}
+        {fondosCuenta && <MensajeFondosInsuficientes cuenta={fondosCuenta} />}
       </form>
 
       <RiskPanel

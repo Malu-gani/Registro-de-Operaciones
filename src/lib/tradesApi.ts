@@ -68,114 +68,60 @@ export async function fetchTrades(portafolioId?: string): Promise<Trade[]> {
   return (data as OperacionRow[]).map(rowToTrade);
 }
 
-export async function insertTrade(
+/**
+ * Abre una operación vía la función `abrir_operacion` (RPC): valida fondos,
+ * inserta la operación y debita el Disponible de la cuenta, todo atómico.
+ * Puede lanzar 'FONDOS_INSUFICIENTES:<cuenta>'. Devuelve la operación creada.
+ */
+export async function abrirOperacion(
   trade: Omit<Trade, "id" | "portafolioId">,
   portafolioId: string
 ): Promise<Trade> {
-  const { data, error } = await supabase
-    .from("operaciones")
-    .insert({
-      portafolio_id: portafolioId,
-      activo: trade.activo,
-      tipo_activo: trade.tipoActivo,
-      sub_tipo_activo: trade.subTipoActivo ?? null,
-      divisa: trade.divisa,
-      apalancamiento: trade.apalancamiento ?? null,
-      tipo_operacion: trade.tipoOperacion,
-      fecha_entrada: trade.fechaEntrada,
-      precio_entrada: trade.precioEntrada,
-      precio_stop_loss: trade.precioStopLoss ?? null,
-      precio_take_profit: trade.precioTakeProfit ?? null,
-      cantidad: trade.cantidad,
-      estado: trade.estado,
-      ratio_riesgo_beneficio: trade.ratioRiesgoBeneficio ?? null,
-      porcentaje_riesgo_cuenta: trade.porcentajeRiesgoOperacion ?? null,
-      notas: trade.notas ?? null,
-    })
-    .select()
-    .single();
+  const { data: opId, error } = await supabase.rpc("abrir_operacion", {
+    p_portafolio_id: portafolioId,
+    p_activo: trade.activo,
+    p_tipo_activo: trade.tipoActivo,
+    p_sub_tipo_activo: trade.subTipoActivo ?? null,
+    p_divisa: trade.divisa,
+    p_apalancamiento: trade.apalancamiento ?? null,
+    p_tipo_operacion: trade.tipoOperacion,
+    p_fecha_entrada: trade.fechaEntrada,
+    p_precio_entrada: trade.precioEntrada,
+    p_precio_stop_loss: trade.precioStopLoss ?? null,
+    p_precio_take_profit: trade.precioTakeProfit ?? null,
+    p_cantidad: trade.cantidad,
+    p_ratio_riesgo_beneficio: trade.ratioRiesgoBeneficio ?? null,
+    p_porcentaje_riesgo: trade.porcentajeRiesgoOperacion ?? null,
+    p_notas: trade.notas ?? null,
+  });
 
   if (error) throw new Error(error.message);
 
-  return rowToTrade(data as OperacionRow);
-}
-
-export async function closeTrade(
-  id: string,
-  cierre: { fechaSalida: string; precioSalida: number; resultadoPnl: number }
-): Promise<Trade> {
-  const { data, error } = await supabase
+  const { data: row, error: fetchError } = await supabase
     .from("operaciones")
-    .update({
-      fecha_salida: cierre.fechaSalida,
-      precio_salida: cierre.precioSalida,
-      resultado_pnl: cierre.resultadoPnl,
-      estado: "cerrada",
-    })
-    .eq("id", id)
-    .select()
+    .select("*")
+    .eq("id", opId as string)
     .single();
 
-  if (error) throw new Error(error.message);
+  if (fetchError) throw new Error(fetchError.message);
 
-  return rowToTrade(data as OperacionRow);
+  return rowToTrade(row as OperacionRow);
 }
 
 /**
- * Cierre parcial: reduce la cantidad de la posición abierta y crea una
- * fila "cerrada" aparte con la porción vendida y su P&L. Son dos
- * escrituras separadas (no hay transacción atómica en el cliente).
+ * Cierra una operación (total o parcial) vía la función `cerrar_operacion`
+ * (RPC): acredita los proceeds al Disponible y registra el cierre, atómico.
  */
-export async function closeTradePartial(
-  trade: Trade,
-  cierre: {
-    fechaSalida: string;
-    precioSalida: number;
-    resultadoPnl: number;
-    cantidadCerrada: number;
-  }
-): Promise<{ actualizado: Trade; cerrado: Trade }> {
-  const cantidadRestante = trade.cantidad - cierre.cantidadCerrada;
+export async function cerrarOperacion(
+  opId: string,
+  cierre: { precioSalida: number; fechaSalida: string; cantidadCerrada: number }
+): Promise<void> {
+  const { error } = await supabase.rpc("cerrar_operacion", {
+    p_op_id: opId,
+    p_precio_salida: cierre.precioSalida,
+    p_fecha_salida: cierre.fechaSalida,
+    p_cantidad_cerrada: cierre.cantidadCerrada,
+  });
 
-  const { data: openData, error: openError } = await supabase
-    .from("operaciones")
-    .update({ cantidad: cantidadRestante })
-    .eq("id", trade.id)
-    .select()
-    .single();
-
-  if (openError) throw new Error(openError.message);
-
-  const { data: closedData, error: closedError } = await supabase
-    .from("operaciones")
-    .insert({
-      portafolio_id: trade.portafolioId,
-      activo: trade.activo,
-      tipo_activo: trade.tipoActivo,
-      sub_tipo_activo: trade.subTipoActivo ?? null,
-      divisa: trade.divisa,
-      apalancamiento: trade.apalancamiento ?? null,
-      tipo_operacion: trade.tipoOperacion,
-      fecha_entrada: trade.fechaEntrada,
-      precio_entrada: trade.precioEntrada,
-      precio_stop_loss: trade.precioStopLoss ?? null,
-      precio_take_profit: trade.precioTakeProfit ?? null,
-      cantidad: cierre.cantidadCerrada,
-      fecha_salida: cierre.fechaSalida,
-      precio_salida: cierre.precioSalida,
-      estado: "cerrada",
-      resultado_pnl: cierre.resultadoPnl,
-      ratio_riesgo_beneficio: trade.ratioRiesgoBeneficio ?? null,
-      porcentaje_riesgo_cuenta: trade.porcentajeRiesgoOperacion ?? null,
-      notas: trade.notas ?? null,
-    })
-    .select()
-    .single();
-
-  if (closedError) throw new Error(closedError.message);
-
-  return {
-    actualizado: rowToTrade(openData as OperacionRow),
-    cerrado: rowToTrade(closedData as OperacionRow),
-  };
+  if (error) throw new Error(error.message);
 }
