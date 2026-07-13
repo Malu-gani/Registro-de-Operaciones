@@ -6,6 +6,7 @@ const items = [
   { label: "Posiciones Abiertas", href: "/posiciones-abiertas" },
   { label: "Historial", href: "/historial" },
   { label: "Portafolios", href: "/portafolio" },
+  { label: "Cuenta", href: "/cuenta" },
   { label: "Alertas", href: null },
   { label: "Ajustes", href: null },
 ];
