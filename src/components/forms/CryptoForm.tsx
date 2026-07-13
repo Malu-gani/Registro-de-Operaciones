@@ -17,11 +17,14 @@ interface FormState {
   tipoOperacion: "long" | "short";
   fechaEntrada: string;
   notas: string;
-  monto: number;
+  // Montos y precios se guardan como texto para poder tipear decimales que
+  // arrancan en 0 (ej. "0.071"): con estado numérico, el 0 intermedio colapsa
+  // a "" y se pierde el inicio del decimal. Se convierten a número al calcular.
+  monto: string;
   apalancamiento: number;
-  precioEntrada: number;
-  precioStopLoss: number;
-  precioTakeProfit: number;
+  precioEntrada: string;
+  precioStopLoss: string;
+  precioTakeProfit: string;
 }
 
 const estadoInicial: FormState = {
@@ -30,11 +33,11 @@ const estadoInicial: FormState = {
   tipoOperacion: "long",
   fechaEntrada: new Date().toISOString().slice(0, 10),
   notas: "",
-  monto: 0,
+  monto: "",
   apalancamiento: 1,
-  precioEntrada: 0,
-  precioStopLoss: 0,
-  precioTakeProfit: 0,
+  precioEntrada: "",
+  precioStopLoss: "",
+  precioTakeProfit: "",
 };
 
 export default function CryptoForm() {
@@ -57,26 +60,31 @@ export default function CryptoForm() {
   const apalancamientoEfectivo = esFuturos ? data.apalancamiento : 1;
   const tipoOperacionEfectivo = esFuturos ? data.tipoOperacion : "long";
 
+  const montoNum = parseFloat(data.monto);
+  const precioEntradaNum = parseFloat(data.precioEntrada);
+  const precioStopLossNum = parseFloat(data.precioStopLoss);
+  const precioTakeProfitNum = parseFloat(data.precioTakeProfit);
+
   const camposIncompletos =
-    !data.precioEntrada ||
-    !data.monto ||
+    !precioEntradaNum ||
+    !montoNum ||
     (esFuturos && !data.apalancamiento) ||
     !portafolioId;
 
   const camposFaltantes = (): string[] => {
     const faltantes: string[] = [];
     if (data.activo.trim().length < 2) faltantes.push("Activo (mínimo 2 caracteres)");
-    if (!data.monto || data.monto <= 0) faltantes.push("Monto invertido");
-    if (!data.precioEntrada || data.precioEntrada <= 0) faltantes.push("Precio de entrada");
+    if (!montoNum || montoNum <= 0) faltantes.push("Monto invertido");
+    if (!precioEntradaNum || precioEntradaNum <= 0) faltantes.push("Precio de entrada");
     return faltantes;
   };
 
   const analizar = () =>
     analizarRiesgoApalancado({
-      precioEntrada: data.precioEntrada,
-      precioStopLoss: data.precioStopLoss || undefined,
-      precioTakeProfit: data.precioTakeProfit || undefined,
-      monto: data.monto,
+      precioEntrada: precioEntradaNum,
+      precioStopLoss: precioStopLossNum || undefined,
+      precioTakeProfit: precioTakeProfitNum || undefined,
+      monto: montoNum,
       apalancamiento: apalancamientoEfectivo,
       tipoOperacion: tipoOperacionEfectivo,
     });
@@ -102,9 +110,9 @@ export default function CryptoForm() {
           apalancamiento: esFuturos ? data.apalancamiento : undefined,
           tipoOperacion: tipoOperacionEfectivo,
           fechaEntrada: data.fechaEntrada,
-          precioEntrada: data.precioEntrada,
-          precioStopLoss: data.precioStopLoss || undefined,
-          precioTakeProfit: data.precioTakeProfit || undefined,
+          precioEntrada: precioEntradaNum,
+          precioStopLoss: precioStopLossNum || undefined,
+          precioTakeProfit: precioTakeProfitNum || undefined,
           cantidad: analysis.tamañoPosicion,
           estado: "abierta",
           ratioRiesgoBeneficio: analysis.ratioRiesgoBeneficio,
@@ -225,9 +233,10 @@ export default function CryptoForm() {
             </span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.monto || ""}
-              onChange={(e) => setField("monto", Number(e.target.value))}
+              value={data.monto}
+              onChange={(e) => setField("monto", e.target.value)}
             />
           </label>
 
@@ -235,11 +244,10 @@ export default function CryptoForm() {
             <span className={labelClasses}>Precio de entrada</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioEntrada || ""}
-              onChange={(e) =>
-                setField("precioEntrada", Number(e.target.value))
-              }
+              value={data.precioEntrada}
+              onChange={(e) => setField("precioEntrada", e.target.value)}
             />
           </label>
 
@@ -247,11 +255,10 @@ export default function CryptoForm() {
             <span className={labelClasses}>Precio Stop Loss (opcional)</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioStopLoss || ""}
-              onChange={(e) =>
-                setField("precioStopLoss", Number(e.target.value))
-              }
+              value={data.precioStopLoss}
+              onChange={(e) => setField("precioStopLoss", e.target.value)}
             />
           </label>
 
@@ -259,11 +266,10 @@ export default function CryptoForm() {
             <span className={labelClasses}>Precio Take Profit (opcional)</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioTakeProfit || ""}
-              onChange={(e) =>
-                setField("precioTakeProfit", Number(e.target.value))
-              }
+              value={data.precioTakeProfit}
+              onChange={(e) => setField("precioTakeProfit", e.target.value)}
             />
           </label>
 

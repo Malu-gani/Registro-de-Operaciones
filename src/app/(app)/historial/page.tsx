@@ -190,6 +190,7 @@ function TablaPlazosFijos() {
             <th className="px-4 py-3 font-medium">Fecha inicio</th>
             <th className="px-4 py-3 font-medium">Vencimiento</th>
             <th className="px-4 py-3 font-medium">Interés estimado</th>
+            <th className="px-4 py-3 font-medium">Total al vencimiento</th>
           </tr>
         </thead>
         <tbody>
@@ -206,6 +207,9 @@ function TablaPlazosFijos() {
               </td>
               <td className="px-4 py-3 font-medium text-risk-green">
                 +{formatMonto(pf.interesEstimado, pf.divisa)}
+              </td>
+              <td className="px-4 py-3 font-medium text-foreground">
+                {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
               </td>
             </tr>
           ))}

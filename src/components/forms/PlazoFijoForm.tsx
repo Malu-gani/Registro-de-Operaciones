@@ -9,18 +9,21 @@ import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
 
 interface FormState {
-  monto: number;
+  // monto y tasaTna se guardan como texto para poder tipear decimales que
+  // arrancan en 0 (ej. "0.5") o tasas como "37.5": con estado numérico, el 0
+  // intermedio colapsa a "" y se pierde el decimal. Se convierten al calcular.
+  monto: string;
   divisa: "USD" | "ARS";
-  tasaTna: number;
+  tasaTna: string;
   plazoDias: number;
   fechaInicio: string;
   notas: string;
 }
 
 const estadoInicial: FormState = {
-  monto: 0,
+  monto: "",
   divisa: "ARS",
-  tasaTna: 0,
+  tasaTna: "",
   plazoDias: 30,
   fechaInicio: new Date().toISOString().slice(0, 10),
   notas: "",
@@ -53,17 +56,20 @@ export default function PlazoFijoForm() {
     setSaved(false);
   };
 
+  const montoNum = parseFloat(data.monto);
+  const tasaTnaNum = parseFloat(data.tasaTna);
+
   const camposIncompletos =
-    !data.monto ||
-    !data.tasaTna ||
+    !montoNum ||
+    !tasaTnaNum ||
     !data.plazoDias ||
     !data.fechaInicio ||
     !portafolioId;
 
   const camposFaltantes = (): string[] => {
     const faltantes: string[] = [];
-    if (!data.monto || data.monto <= 0) faltantes.push("Monto");
-    if (!data.tasaTna || data.tasaTna <= 0) faltantes.push("Tasa nominal anual (TNA)");
+    if (!montoNum || montoNum <= 0) faltantes.push("Monto");
+    if (!tasaTnaNum || tasaTnaNum <= 0) faltantes.push("Tasa nominal anual (TNA)");
     if (!data.plazoDias || data.plazoDias <= 0) faltantes.push("Plazo (días)");
     if (!data.fechaInicio) faltantes.push("Fecha de inicio");
     return faltantes;
@@ -84,16 +90,16 @@ export default function PlazoFijoForm() {
     setGuardando(true);
     try {
       const { interesEstimado, fechaVencimiento } = calcularPlazoFijo(
-        data.monto,
-        data.tasaTna,
+        montoNum,
+        tasaTnaNum,
         data.plazoDias,
         data.fechaInicio
       );
       await addPlazoFijo(
         {
-          monto: data.monto,
+          monto: montoNum,
           divisa: data.divisa,
-          tasaTna: data.tasaTna,
+          tasaTna: tasaTnaNum,
           plazoDias: data.plazoDias,
           fechaInicio: data.fechaInicio,
           fechaVencimiento,
@@ -115,7 +121,7 @@ export default function PlazoFijoForm() {
   };
 
   const resumen = !camposIncompletos
-    ? calcularPlazoFijo(data.monto, data.tasaTna, data.plazoDias, data.fechaInicio)
+    ? calcularPlazoFijo(montoNum, tasaTnaNum, data.plazoDias, data.fechaInicio)
     : null;
 
   return (
@@ -155,9 +161,10 @@ export default function PlazoFijoForm() {
             <span className={labelClasses}>Monto ({data.divisa})</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.monto || ""}
-              onChange={(e) => setField("monto", Number(e.target.value))}
+              value={data.monto}
+              onChange={(e) => setField("monto", e.target.value)}
             />
           </label>
 
@@ -165,10 +172,10 @@ export default function PlazoFijoForm() {
             <span className={labelClasses}>Tasa nominal anual (TNA %)</span>
             <input
               type="number"
-              step="0.1"
+              step="any"
               className={inputClasses}
-              value={data.tasaTna || ""}
-              onChange={(e) => setField("tasaTna", Number(e.target.value))}
+              value={data.tasaTna}
+              onChange={(e) => setField("tasaTna", e.target.value)}
             />
           </label>
 
@@ -249,7 +256,7 @@ export default function PlazoFijoForm() {
                 Monto total al vencimiento
               </p>
               <p className="mt-1 text-lg font-semibold text-foreground">
-                {formatMonto(data.monto + resumen.interesEstimado)}
+                {formatMonto(montoNum + resumen.interesEstimado)}
               </p>
             </div>
             <div className="rounded-lg border border-border bg-surface-muted p-3">

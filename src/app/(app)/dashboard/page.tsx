@@ -16,6 +16,14 @@ const categorias: { id: Categoria; label: string; moneda: string }[] = [
   { id: "futuros", label: "Cripto futuros", moneda: "USDT" },
 ];
 
+/** Pestaña de Posiciones Abiertas que corresponde a cada categoría del Resumen. */
+const tabPosiciones: Record<Categoria, string> = {
+  acciones: "acciones",
+  cedears: "cedears",
+  spot: "crypto-spot",
+  futuros: "crypto-futuros",
+};
+
 const presets: { id: Preset; label: string }[] = [
   { id: "1m", label: "Último mes" },
   { id: "2m", label: "2 meses" },
@@ -271,7 +279,10 @@ export default function DashboardPage() {
             Tiene {abiertas.length}{" "}
             {abiertas.length === 1 ? "operación abierta" : "operaciones abiertas"}.
             Puede dirigirse a{" "}
-            <Link href="/posiciones-abiertas" className="text-brand underline">
+            <Link
+              href={`/posiciones-abiertas?tab=${tabPosiciones[categoria]}`}
+              className="text-brand underline"
+            >
               Posiciones Abiertas
             </Link>{" "}
             para {abiertas.length === 1 ? "visualizarla" : "visualizarlas"} en
