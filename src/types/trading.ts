@@ -5,6 +5,27 @@ export type Divisa = "USD" | "ARS" | "USDT";
 export type TipoMercadoPortafolio = "cripto" | "acciones" | "mixto";
 
 /**
+ * Las 4 cuentas (bolsillos) que tiene cada portafolio, una por divisa/mercado.
+ * Spot y Futuros son billeteras USDT separadas (como en un exchange real).
+ */
+export type CuentaId = "ars" | "usd" | "usdt_spot" | "usdt_futuros";
+
+/**
+ * Tipos de movimiento del ledger de cuenta. `deposito`/`retiro` los hace el
+ * usuario; el resto son automáticos (auditoría de aperturas/cierres de
+ * operaciones y plazos). El signo del monto define si entra o sale del
+ * Disponible.
+ */
+export type TipoMovimientoCuenta =
+  | "deposito"
+  | "retiro"
+  | "ajuste_inicial"
+  | "apertura"
+  | "cierre"
+  | "plazo_apertura"
+  | "plazo_liquidacion";
+
+/**
  * Portafolio del usuario (tabla `portafolios`). `tipoMercado` es solo
  * informativo — no restringe qué tipo de operaciones se pueden cargar.
  */
@@ -112,4 +133,30 @@ export interface MovimientoFuturos {
   monto: number; // positivo = depósito, negativo = retiro
   fecha: string;
   notas?: string;
+}
+
+/**
+ * Saldo Disponible (Capital No Comprometido) de una cuenta de un portafolio.
+ * El Comprometido no vive acá: se deriva de las posiciones abiertas.
+ */
+export interface SaldoCuenta {
+  portafolioId: string;
+  cuenta: CuentaId;
+  disponible: number;
+}
+
+/**
+ * Movimiento del ledger de cuenta (tabla `movimientos_cuenta`). Reemplaza a
+ * MovimientoFuturos: es el historial de depósitos/retiros más la auditoría de
+ * aperturas/cierres. `monto` con signo: positivo entra al Disponible.
+ */
+export interface MovimientoCuenta {
+  id: string;
+  portafolioId: string;
+  cuenta: CuentaId;
+  tipo: TipoMovimientoCuenta;
+  monto: number;
+  fecha: string;
+  notas?: string;
+  refOperacionId?: string;
 }
