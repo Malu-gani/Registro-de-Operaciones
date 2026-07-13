@@ -432,6 +432,12 @@ function TablaPlazosFijosPendientes() {
                   {diasRestantes(pf.fechaVencimiento)}
                 </span>
               </p>
+              <p className="text-foreground-muted">
+                Total al vencimiento{" "}
+                <span className="block text-foreground">
+                  {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
+                </span>
+              </p>
             </div>
           </div>
         ))}
@@ -448,6 +454,7 @@ function TablaPlazosFijosPendientes() {
               <th className="px-4 py-3 font-medium">Vencimiento</th>
               <th className="px-4 py-3 font-medium">Días restantes</th>
               <th className="px-4 py-3 font-medium">Interés proyectado</th>
+              <th className="px-4 py-3 font-medium">Total al vencimiento</th>
             </tr>
           </thead>
           <tbody>
@@ -467,6 +474,9 @@ function TablaPlazosFijosPendientes() {
                 </td>
                 <td className="px-4 py-3 font-medium text-risk-green">
                   +{formatMonto(pf.interesEstimado, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 font-medium text-foreground">
+                  {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
                 </td>
               </tr>
             ))}
