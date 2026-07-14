@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
+import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { calcularPnl, plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, Trade, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 
@@ -227,6 +228,17 @@ function TablaOperacionesAbiertas({
     )
     .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada));
 
+  const {
+    visibles,
+    totalCount,
+    mostrarVerMas,
+    mostrarPaginador,
+    pagina,
+    totalPaginas,
+    verMas,
+    irAPagina,
+  } = useListaPaginada(abiertas);
+
   if (error) {
     return (
       <div className="rounded-lg border border-risk-red-border bg-risk-red-bg p-4 text-sm text-risk-red">
@@ -246,7 +258,7 @@ function TablaOperacionesAbiertas({
   return (
     <>
       <div className="flex flex-col gap-3 md:hidden">
-        {abiertas.map((trade) => (
+        {visibles.map((trade) => (
           <div key={trade.id} className="rounded-xl border border-border bg-surface p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -317,7 +329,7 @@ function TablaOperacionesAbiertas({
             </tr>
           </thead>
           <tbody>
-            {abiertas.map((trade) => (
+            {visibles.map((trade) => (
               <tr key={trade.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium text-foreground">
                   {trade.activo}
@@ -356,6 +368,17 @@ function TablaOperacionesAbiertas({
         </table>
       </div>
 
+      <ControlesListaPaginada
+        visiblesCount={visibles.length}
+        totalCount={totalCount}
+        mostrarVerMas={mostrarVerMas}
+        mostrarPaginador={mostrarPaginador}
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        verMas={verMas}
+        irAPagina={irAPagina}
+      />
+
       {tradeACerrar && (
         <CerrarOperacionModal
           trade={tradeACerrar}
@@ -378,6 +401,17 @@ function TablaPlazosFijosPendientes() {
   const pendientes = plazosFijos
     .filter((pf) => !plazoFijoVencido(pf.fechaVencimiento))
     .sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento));
+
+  const {
+    visibles,
+    totalCount,
+    mostrarVerMas,
+    mostrarPaginador,
+    pagina,
+    totalPaginas,
+    verMas,
+    irAPagina,
+  } = useListaPaginada(pendientes);
 
   if (error) {
     return (
@@ -402,7 +436,7 @@ function TablaPlazosFijosPendientes() {
   return (
     <>
       <div className="flex flex-col gap-3 md:hidden">
-        {pendientes.map((pf) => (
+        {visibles.map((pf) => (
           <div key={pf.id} className="rounded-xl border border-border bg-surface p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -461,7 +495,7 @@ function TablaPlazosFijosPendientes() {
             </tr>
           </thead>
           <tbody>
-            {pendientes.map((pf) => (
+            {visibles.map((pf) => (
               <tr key={pf.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium text-foreground">
                   {formatMonto(pf.monto, pf.divisa)}
@@ -486,6 +520,17 @@ function TablaPlazosFijosPendientes() {
           </tbody>
         </table>
       </div>
+
+      <ControlesListaPaginada
+        visiblesCount={visibles.length}
+        totalCount={totalCount}
+        mostrarVerMas={mostrarVerMas}
+        mostrarPaginador={mostrarPaginador}
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        verMas={verMas}
+        irAPagina={irAPagina}
+      />
     </>
   );
 }
@@ -535,6 +580,7 @@ export default function PosicionesAbiertasPage() {
 
       {tab === "acciones" && (
         <TablaOperacionesAbiertas
+          key="acciones"
           tipoActivo="acciones"
           subTipoActivo="usd"
           mensajeVacio="No tiene posiciones abiertas de Acciones en este momento."
@@ -542,6 +588,7 @@ export default function PosicionesAbiertasPage() {
       )}
       {tab === "cedears" && (
         <TablaOperacionesAbiertas
+          key="cedears"
           tipoActivo="acciones"
           subTipoActivo="cedear"
           mensajeVacio="No tiene posiciones abiertas de CEDEARs en este momento."
@@ -549,6 +596,7 @@ export default function PosicionesAbiertasPage() {
       )}
       {tab === "crypto-futuros" && (
         <TablaOperacionesAbiertas
+          key="crypto-futuros"
           tipoActivo="crypto"
           subTipoActivo="futuros"
           mensajeVacio="No tiene posiciones abiertas de Cripto futuros en este momento."
@@ -556,6 +604,7 @@ export default function PosicionesAbiertasPage() {
       )}
       {tab === "crypto-spot" && (
         <TablaOperacionesAbiertas
+          key="crypto-spot"
           tipoActivo="crypto"
           subTipoActivo="spot"
           mensajeVacio="No tiene posiciones abiertas de Cripto spot en este momento."

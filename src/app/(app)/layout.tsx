@@ -4,7 +4,6 @@ import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 import { TradesProvider } from "@/context/TradesContext";
 import { PlazosFijosProvider } from "@/context/PlazosFijosContext";
-import { MovimientosFuturosProvider } from "@/context/MovimientosFuturosContext";
 import { CuentasProvider } from "@/context/CuentasContext";
 import { PortafoliosProvider } from "@/context/PortafoliosContext";
 import { createClient } from "@/lib/supabase/server";
@@ -27,8 +26,7 @@ export default async function AppLayout({
     <PortafoliosProvider>
       <TradesProvider>
         <PlazosFijosProvider>
-          <MovimientosFuturosProvider>
-            <CuentasProvider>
+          <CuentasProvider>
             <div className="flex h-full flex-col">
               <Navbar userEmail={user.email ?? ""} />
               <div className="flex flex-1 overflow-hidden">
@@ -39,8 +37,7 @@ export default async function AppLayout({
               </div>
               <MobileNav />
             </div>
-            </CuentasProvider>
-          </MovimientosFuturosProvider>
+          </CuentasProvider>
         </PlazosFijosProvider>
       </TradesProvider>
     </PortafoliosProvider>

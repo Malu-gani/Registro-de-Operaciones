@@ -7,6 +7,9 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "@/context/PortafoliosContext";
 import { comprometidoPorCuenta } from "@/utils/cuentas";
+import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
+import SeccionesPortafolio from "@/components/portafolio/SeccionesPortafolio";
+import GestionPortafolios from "@/components/portafolio/GestionPortafolios";
 import { inputClasses, labelClasses } from "@/components/formStyles";
 import type { CuentaId, Divisa } from "@/types/trading";
 
@@ -47,6 +50,40 @@ function formatMonto(valor: number, divisa: Divisa) {
 
 function divisaDeCuenta(cuenta: CuentaId): Divisa {
   return CUENTAS.find((c) => c.id === cuenta)?.divisa ?? "USDT";
+}
+
+/** Barra Disponible vs Comprometido de una cuenta (oculta si no hay capital cargado). */
+function BarraComprometido({
+  disponible,
+  comprometido,
+}: {
+  disponible: number;
+  comprometido: number;
+}) {
+  const total = disponible + comprometido;
+  if (total <= 0) return null;
+
+  const pctDisponible = (Math.max(disponible, 0) / total) * 100;
+  const pctComprometido = 100 - pctDisponible;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex h-2 overflow-hidden rounded-full bg-surface-muted">
+        <div
+          className="h-full"
+          style={{ width: `${pctDisponible}%`, background: "var(--chart-1)" }}
+        />
+        <div
+          className="h-full"
+          style={{ width: `${pctComprometido}%`, background: "var(--chart-2)" }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-foreground-muted">
+        <span>{pctDisponible.toFixed(0)}% Disponible</span>
+        <span>{pctComprometido.toFixed(0)}% Comprometido</span>
+      </div>
+    </div>
+  );
 }
 
 function hoyISO() {
@@ -240,6 +277,23 @@ export default function CuentaPage() {
     return comprometidoPorCuenta(trades, plazosNoLiquidados);
   }, [trades, plazosFijos]);
 
+  const {
+    visibles: movimientosVisibles,
+    totalCount: totalMovimientos,
+    mostrarVerMas,
+    mostrarMinimizar,
+    mostrarPaginador,
+    pagina,
+    totalPaginas,
+    verMas,
+    colapsar,
+    irAPagina,
+  } = useListaPaginada(movimientos, {
+    inicial: 5,
+    tamanoPagina: 15,
+    conMinimizar: true,
+  });
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 className="text-lg font-semibold text-foreground">Cuenta</h1>
@@ -315,12 +369,30 @@ export default function CuentaPage() {
                       </p>
                     </div>
                   </div>
+                  {!loading && (
+                    <BarraComprometido disponible={disponible} comprometido={comp} />
+                  )}
                   {abierta && (
                     <DepositoRetiro portafolioId={portafolioActivoId} cuenta={c.id} />
                   )}
                 </div>
               );
             })}
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById("distribucion")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+            >
+              Ver distribución de Portafolio
+              <span aria-hidden="true">↓</span>
+            </button>
           </div>
 
           <div>
@@ -332,48 +404,79 @@ export default function CuentaPage() {
                 Todavía no hay movimientos en este portafolio.
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs text-foreground-muted">
-                      <th className="px-4 py-3 font-medium">Fecha</th>
-                      <th className="px-4 py-3 font-medium">Cuenta</th>
-                      <th className="px-4 py-3 font-medium">Tipo</th>
-                      <th className="px-4 py-3 font-medium">Monto</th>
-                      <th className="px-4 py-3 font-medium">Notas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {movimientos.map((m) => {
-                      const divisa = divisaDeCuenta(m.cuenta);
-                      return (
-                        <tr key={m.id} className="border-b border-border last:border-0">
-                          <td className="px-4 py-3 text-foreground-muted">{m.fecha}</td>
-                          <td className="px-4 py-3 text-foreground-muted">
-                            {CUENTAS.find((c) => c.id === m.cuenta)?.label ?? m.cuenta}
-                          </td>
-                          <td className="px-4 py-3 text-foreground-muted">
-                            {TIPO_LABEL[m.tipo] ?? m.tipo}
-                          </td>
-                          <td
-                            className={`px-4 py-3 font-medium tabular-nums ${
-                              m.monto >= 0 ? "text-risk-green" : "text-risk-red"
-                            }`}
+              <div className="flex flex-col gap-3">
+                <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs text-foreground-muted">
+                        <th className="px-4 py-3 font-medium">Fecha</th>
+                        <th className="px-4 py-3 font-medium">Cuenta</th>
+                        <th className="px-4 py-3 font-medium">Tipo</th>
+                        <th className="px-4 py-3 font-medium">Monto</th>
+                        <th className="px-4 py-3 font-medium">Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {movimientosVisibles.map((m) => {
+                        const divisa = divisaDeCuenta(m.cuenta);
+                        return (
+                          <tr
+                            key={m.id}
+                            className="animate-fade-in-row border-b border-border last:border-0"
                           >
-                            {m.monto >= 0 ? "+" : "−"}
-                            {formatMonto(Math.abs(m.monto), divisa)}
-                          </td>
-                          <td className="px-4 py-3 text-foreground-muted">
-                            {m.notas ?? "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <td className="px-4 py-3 text-foreground-muted">{m.fecha}</td>
+                            <td className="px-4 py-3 text-foreground-muted">
+                              {CUENTAS.find((c) => c.id === m.cuenta)?.label ?? m.cuenta}
+                            </td>
+                            <td className="px-4 py-3 text-foreground-muted">
+                              {TIPO_LABEL[m.tipo] ?? m.tipo}
+                            </td>
+                            <td
+                              className={`px-4 py-3 font-medium tabular-nums ${
+                                m.monto >= 0 ? "text-risk-green" : "text-risk-red"
+                              }`}
+                            >
+                              {m.monto >= 0 ? "+" : "−"}
+                              {formatMonto(Math.abs(m.monto), divisa)}
+                            </td>
+                            <td className="px-4 py-3 text-foreground-muted">
+                              {m.notas ?? "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <ControlesListaPaginada
+                  visiblesCount={movimientosVisibles.length}
+                  totalCount={totalMovimientos}
+                  mostrarVerMas={mostrarVerMas}
+                  mostrarMinimizar={mostrarMinimizar}
+                  mostrarPaginador={mostrarPaginador}
+                  pagina={pagina}
+                  totalPaginas={totalPaginas}
+                  verMas={verMas}
+                  colapsar={colapsar}
+                  irAPagina={irAPagina}
+                />
               </div>
             )}
           </div>
+
+          <section id="distribucion" className="flex scroll-mt-6 flex-col gap-8">
+            <h2 className="border-b border-border pb-2 text-base font-semibold text-foreground">
+              Distribución de {nombrePortafolio}
+            </h2>
+            <SeccionesPortafolio
+              portafolioId={portafolioActivoId}
+              trades={trades}
+              mostrarLinkCuenta={false}
+            />
+          </section>
+
+          <GestionPortafolios />
         </>
       )}
     </div>

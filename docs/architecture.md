@@ -100,19 +100,21 @@ alcanza esa fecha, deja de aparecer ahí y pasa a **Historial** (pestaña
 "Plazos Fijos") con sus datos ya fijos (monto, TNA, interés). No requiere
 ningún job de servidor ni acción manual del usuario.
 
-### Tabla: `movimientos_futuros`
+### Tabla: `movimientos_futuros` (en desuso, ver 2.2)
 - `id`
 - `portafolio_id` → FK a `portafolios`
 - `monto` (positivo = depósito, negativo = retiro)
 - `fecha`
 - `notas`
 
-Ledger de movimientos manuales (dinero real) de la cuenta de Futuros —
-solo `select`/`insert`, no se edita un movimiento ya cargado. El balance
-de Futuros que se muestra en `/portafolio` **no** es un campo de esta
-tabla: se calcula en la aplicación como
-`Σ movimientos_futuros.monto + Σ operaciones.resultado_pnl` (de las
-operaciones `tipo_activo='crypto' AND sub_tipo_activo='futuros' AND estado='cerrada'`).
+Ledger legado de movimientos manuales de la cuenta de Futuros, previo al
+sistema de saldos por cuenta (2.1). Sus filas fueron migradas una sola vez
+a `movimientos_cuenta` (cuenta `usdt_futuros`) en
+`supabase/007_cuentas_y_movimientos.sql`; la tabla vieja no se borró por
+seguridad pero ya no se lee ni se escribe desde la app (2026-07-14: se
+sacó la caja de depósitos de Futuros de `/portafolio`, que era la última
+lectora). `/portafolio` ahora solo muestra un resumen de Disponible +
+Comprometido de la cuenta de Futuros con un link a `/cuenta` para operarla.
 
 ### Tabla: `alertas` (no implementada todavía)
 - `id`
@@ -122,7 +124,93 @@ operaciones `tipo_activo='crypto' AND sub_tipo_activo='futuros' AND estado='cerr
 - `estado` (pendiente / disparada)
 - `fecha_disparo`
 
-## 2.1 Seguridad de acceso (RLS)
+## 2.1 Sistema de saldos por cuenta (2026-07-14)
+
+Cada portafolio tiene 4 "cuentas" (bolsillos), una por divisa/mercado —
+`CuentaId` en `src/types/trading.ts`:
+
+| Cuenta | Divisa | Cubre |
+|---|---|---|
+| `ars` | ARS | CEDEARs + plazo fijo ARS |
+| `usd` | USD | Acciones USD + plazo fijo USD |
+| `usdt_spot` | USDT | Cripto Spot |
+| `usdt_futuros` | USDT | Cripto Futuros (margen) — billetera separada de `usdt_spot` |
+
+No se convierten divisas entre cuentas (mismo criterio que Multi-portafolio).
+
+### Tabla: `cuentas_saldos`
+- `id`
+- `portafolio_id` → FK a `portafolios`
+- `cuenta` (`ars` / `usd` / `usdt_spot` / `usdt_futuros`)
+- `disponible` — el **Capital No Comprometido** de esa cuenta
+- `updated_at`
+- único por `(portafolio_id, cuenta)`
+
+Solo se persiste el **Disponible**. El **Comprometido** no se guarda: se
+deriva en el cliente sumando el costo de las posiciones abiertas y los
+plazos fijos pendientes de esa cuenta (`comprometidoPorCuenta()` en
+`src/utils/cuentas.ts`) — mismo criterio que ya se usaba para el balance
+de Futuros antes de este sistema.
+
+### Tabla: `movimientos_cuenta`
+Ledger unificado (append-only, no se edita) de todo lo que mueve el
+Disponible de una cuenta:
+- `id`, `portafolio_id`, `cuenta`
+- `tipo`: `deposito` / `retiro` / `ajuste_inicial` (carga de saldo inicial)
+  / `apertura` / `cierre` (de operaciones) / `plazo_apertura` /
+  `plazo_liquidacion` (de plazos fijos)
+- `monto` — con signo: positivo suma al Disponible, negativo resta
+- `fecha`, `notas`, `ref_operacion_id` (id de la operación o plazo fijo
+  que originó el movimiento, si aplica)
+
+Reemplaza a `movimientos_futuros` (ver 2. Tabla `movimientos_futuros`,
+ahora en desuso).
+
+### Mutaciones vía funciones RPC (`supabase/008_funciones_saldos.sql`)
+
+Todas las escrituras al Disponible pasan por funciones de Postgres
+(`security definer`, llamadas con `supabase.rpc(...)` desde
+`src/lib/cuentasApi.ts` / `tradesApi.ts` / `plazosFijosApi.ts`), no por
+`insert`/`update` directos del cliente. Cada función corre en una sola
+transacción: valida fondos del lado del servidor y, si algo falla, no
+queda nada a medias (reemplaza el doble-write no atómico que existía
+antes para cerrar operaciones).
+
+| Función | Qué hace |
+|---|---|
+| `set_saldo_inicial` | Fija el Disponible de una cuenta ("cargá tus saldos de hoy"). |
+| `registrar_movimiento_cuenta` | Depósito o retiro manual; valida que el retiro no deje el Disponible negativo. |
+| `abrir_operacion` | Calcula el costo (`cantidad × precioEntrada / apalancamiento`), valida fondos, inserta la operación y debita el Disponible de la cuenta correspondiente. |
+| `cerrar_operacion` | Soporta cierre total o parcial; acredita `costo de la porción cerrada + P&L` al Disponible. |
+| `abrir_plazo_fijo` | Valida fondos y debita el monto del plazo fijo. |
+| `liquidar_plazo_fijo` | Marca el plazo como `liquidado` (columna nueva en `plazos_fijos`, evita acreditar dos veces) y acredita `monto + interés`. |
+
+Si una función detecta fondos insuficientes, levanta la excepción
+`FONDOS_INSUFICIENTES:<cuenta>`; la app la captura y muestra el mensaje
+contextual con botón de depositar (`MensajeFondosInsuficientes.tsx`).
+
+### Pantalla `/cuenta`
+
+Nueva pantalla (`src/app/(app)/cuenta/page.tsx`) que muestra, por cuenta,
+Disponible + Comprometido + historial de `movimientos_cuenta`, y permite
+cargar saldo inicial y depositar/retirar. Estado global en
+`CuentasContext` (`src/context/CuentasContext.tsx`). Cada tarjeta de cuenta
+incluye una barra "Comprometido vs No Comprometido" (`BarraComprometido`,
+2026-07-14) que se oculta si la cuenta no tiene capital cargado.
+
+### Paginación de listas (2026-07-14)
+
+Hook + componente compartidos en `src/components/ListaPaginada.tsx`
+(`useListaPaginada`, `ControlesListaPaginada`), aplicados sobre listas ya
+cargadas completas en memoria (no hay paginación del lado del servidor):
+Posiciones Abiertas (las 5 pestañas), Historial (operaciones cerradas y
+plazos fijos vencidos) y el historial de movimientos de `/cuenta`. Regla:
+≤5 registros sin controles, 6-10 con botón "Ver todos", &gt;10 pasa a
+paginación real de a 10. Los componentes de tabla reusados entre pestañas
+(`TablaOperacionesAbiertas` en Posiciones Abiertas) llevan `key` explícita
+por pestaña para resetear la paginación al cambiar de tab.
+
+## 2.2 Seguridad de acceso (RLS)
 
 Cada tabla tiene Row Level Security activada. Las políticas (ver
 `supabase/002_auth_and_rls.sql`) restringen todo acceso a filas cuyo
