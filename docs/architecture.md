@@ -100,21 +100,14 @@ alcanza esa fecha, deja de aparecer ahí y pasa a **Historial** (pestaña
 "Plazos Fijos") con sus datos ya fijos (monto, TNA, interés). No requiere
 ningún job de servidor ni acción manual del usuario.
 
-### Tabla: `movimientos_futuros` (en desuso, ver 2.2)
-- `id`
-- `portafolio_id` → FK a `portafolios`
-- `monto` (positivo = depósito, negativo = retiro)
-- `fecha`
-- `notas`
+### Tabla: `movimientos_futuros` (borrada, ver 2.2)
 
 Ledger legado de movimientos manuales de la cuenta de Futuros, previo al
 sistema de saldos por cuenta (2.1). Sus filas fueron migradas una sola vez
 a `movimientos_cuenta` (cuenta `usdt_futuros`) en
-`supabase/007_cuentas_y_movimientos.sql`; la tabla vieja no se borró por
-seguridad pero ya no se lee ni se escribe desde la app (2026-07-14: se
-sacó la caja de depósitos de Futuros de `/portafolio`, que era la última
-lectora). `/portafolio` ahora solo muestra un resumen de Disponible +
-Comprometido de la cuenta de Futuros con un link a `/cuenta` para operarla.
+`supabase/007_cuentas_y_movimientos.sql`; ya no se leía ni se escribía
+desde la app desde el 2026-07-14, y la tabla se borró definitivamente en
+`supabase/009_drop_movimientos_futuros.sql`.
 
 ### Tabla: `alertas` (no implementada todavía)
 - `id`
@@ -164,7 +157,7 @@ Disponible de una cuenta:
   que originó el movimiento, si aplica)
 
 Reemplaza a `movimientos_futuros` (ver 2. Tabla `movimientos_futuros`,
-ahora en desuso).
+borrada).
 
 ### Mutaciones vía funciones RPC (`supabase/008_funciones_saldos.sql`)
 
