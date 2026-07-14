@@ -59,9 +59,10 @@ export default function EquityCurve({
               background: "var(--surface)",
               border: "1px solid var(--border)",
               borderRadius: 8,
-              color: "var(--foreground)",
               fontSize: 12,
             }}
+            labelStyle={{ color: "var(--foreground)", fontWeight: 600 }}
+            itemStyle={{ color: "var(--foreground)" }}
             formatter={(value) => [formatTooltip(Number(value)), "P&L acumulado"]}
             labelFormatter={(label) => `Fecha: ${label}`}
           />
