@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
+import { useCuentas } from "@/context/CuentasContext";
 import { calcularPnl, plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, Trade, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 
@@ -44,6 +45,7 @@ function CerrarOperacionModal({
   onClose: () => void;
 }) {
   const { closeTradePartial } = useTrades();
+  const { refrescar } = useCuentas();
   const permiteCierreParcial = trade.tipoActivo === "acciones";
   const [precioSalida, setPrecioSalida] = useState("");
   const [fechaSalida, setFechaSalida] = useState(hoyISO());
@@ -86,6 +88,7 @@ function CerrarOperacionModal({
         resultadoPnl: pnl,
         cantidadCerrada: cantidadNum,
       });
+      await refrescar();
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cerrar la operación");
