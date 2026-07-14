@@ -187,6 +187,10 @@ function DepositoRetiro({
       setError("Ingresá un monto válido.");
       return;
     }
+    if (fecha > hoyISO()) {
+      setError("La fecha no puede ser futura.");
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -197,7 +201,9 @@ function DepositoRetiro({
       setError(
         msg.includes("FONDOS_INSUFICIENTES")
           ? "No tenés Disponible suficiente para ese retiro."
-          : msg
+          : msg.includes("FECHA_FUTURA")
+            ? "La fecha no puede ser futura."
+            : msg
       );
     } finally {
       setGuardando(false);
@@ -235,6 +241,7 @@ function DepositoRetiro({
           type="date"
           className={inputClasses}
           value={fecha}
+          max={hoyISO()}
           onChange={(e) => setFecha(e.target.value)}
         />
       </div>
