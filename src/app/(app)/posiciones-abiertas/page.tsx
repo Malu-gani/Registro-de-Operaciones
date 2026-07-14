@@ -58,12 +58,15 @@ function CerrarOperacionModal({
   const cantidadNum = permiteCierreParcial
     ? parseFloat(cantidadACerrar)
     : trade.cantidad;
-  // Acciones y CEDEARs se operan en unidades enteras: no se admiten decimales.
-  const cantidadValida =
-    !isNaN(cantidadNum) &&
-    Number.isInteger(cantidadNum) &&
-    cantidadNum > 0 &&
-    cantidadNum <= trade.cantidad;
+  // El cierre parcial (acciones/CEDEARs) se opera en unidades enteras. En
+  // cripto la cantidad es fija (se cierra la posición entera) y puede ser
+  // fraccionaria, así que no se le aplica el chequeo de entero.
+  const cantidadValida = permiteCierreParcial
+    ? !isNaN(cantidadNum) &&
+      Number.isInteger(cantidadNum) &&
+      cantidadNum > 0 &&
+      cantidadNum <= trade.cantidad
+    : !isNaN(cantidadNum) && cantidadNum > 0;
   const pnl =
     !isNaN(precioSalidaNum) && precioSalidaNum > 0 && cantidadValida
       ? calcularPnl(trade.tipoOperacion, trade.precioEntrada, precioSalidaNum, cantidadNum)
