@@ -1,12 +1,11 @@
 import Link from "next/link";
 
 const items = [
-  { label: "Resumen", href: "/dashboard" },
+  { label: "Cuenta", href: "/cuenta" },
   { label: "Nueva Operación", href: "/nueva-operacion" },
   { label: "Posiciones Abiertas", href: "/posiciones-abiertas" },
+  { label: "Resumen", href: "/dashboard" },
   { label: "Historial", href: "/historial" },
-  { label: "Portafolios", href: "/portafolio" },
-  { label: "Cuenta", href: "/cuenta" },
   { label: "Alertas", href: null },
   { label: "Ajustes", href: null },
 ];

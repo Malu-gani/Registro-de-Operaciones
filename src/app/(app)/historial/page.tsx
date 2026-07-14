@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
+import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
@@ -48,6 +49,17 @@ function TablaOperaciones() {
     .filter((t) => t.estado === "cerrada")
     .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada));
 
+  const {
+    visibles,
+    totalCount,
+    mostrarVerMas,
+    mostrarPaginador,
+    pagina,
+    totalPaginas,
+    verMas,
+    irAPagina,
+  } = useListaPaginada(ordenadas);
+
   if (error) {
     return (
       <div className="rounded-lg border border-risk-red-border bg-risk-red-bg p-4 text-sm text-risk-red">
@@ -69,85 +81,98 @@ function TablaOperaciones() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[900px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-foreground-muted">
-            <th className="px-4 py-3 font-medium">Activo</th>
-            <th className="px-4 py-3 font-medium">Divisa</th>
-            <th className="px-4 py-3 font-medium">Tipo</th>
-            <th className="px-4 py-3 font-medium">Fecha entrada</th>
-            <th className="px-4 py-3 font-medium">Entrada</th>
-            <th className="px-4 py-3 font-medium">Stop Loss</th>
-            <th className="px-4 py-3 font-medium">Take Profit</th>
-            <th className="px-4 py-3 font-medium">R:R</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            <th className="px-4 py-3 font-medium">P&L</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ordenadas.map((trade) => (
-            <tr key={trade.id} className="border-b border-border last:border-0">
-              <td className="px-4 py-3 font-medium text-foreground">
-                {trade.activo}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {trade.divisa}
-              </td>
-              <td className="px-4 py-3 capitalize text-foreground-muted">
-                {trade.tipoOperacion}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {trade.fechaEntrada}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {trade.precioEntrada}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {trade.precioStopLoss ?? "—"}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {trade.precioTakeProfit ?? "—"}
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${rrBadgeClass(
-                    trade.ratioRiesgoBeneficio
-                  )}`}
-                >
-                  {trade.ratioRiesgoBeneficio === undefined
-                    ? "—"
-                    : `1 : ${trade.ratioRiesgoBeneficio.toFixed(2)}`}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    trade.estado === "abierta"
-                      ? "bg-surface-muted text-foreground-muted"
-                      : "bg-risk-green-bg text-risk-green"
-                  }`}
-                >
-                  {trade.estado}
-                </span>
-              </td>
-              <td className="px-4 py-3 font-medium">
-                {trade.resultadoPnl === undefined ? (
-                  <span className="text-foreground-muted">—</span>
-                ) : (
-                  <span
-                    className={
-                      trade.resultadoPnl >= 0 ? "text-risk-green" : "text-risk-red"
-                    }
-                  >
-                    {formatMonto(trade.resultadoPnl, trade.divisa)}
-                  </span>
-                )}
-              </td>
+    <div className="flex flex-col gap-3">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-foreground-muted">
+              <th className="px-4 py-3 font-medium">Activo</th>
+              <th className="px-4 py-3 font-medium">Divisa</th>
+              <th className="px-4 py-3 font-medium">Tipo</th>
+              <th className="px-4 py-3 font-medium">Fecha entrada</th>
+              <th className="px-4 py-3 font-medium">Entrada</th>
+              <th className="px-4 py-3 font-medium">Stop Loss</th>
+              <th className="px-4 py-3 font-medium">Take Profit</th>
+              <th className="px-4 py-3 font-medium">R:R</th>
+              <th className="px-4 py-3 font-medium">Estado</th>
+              <th className="px-4 py-3 font-medium">P&L</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {visibles.map((trade) => (
+              <tr key={trade.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium text-foreground">
+                  {trade.activo}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {trade.divisa}
+                </td>
+                <td className="px-4 py-3 capitalize text-foreground-muted">
+                  {trade.tipoOperacion}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {trade.fechaEntrada}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {trade.precioEntrada}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {trade.precioStopLoss ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {trade.precioTakeProfit ?? "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${rrBadgeClass(
+                      trade.ratioRiesgoBeneficio
+                    )}`}
+                  >
+                    {trade.ratioRiesgoBeneficio === undefined
+                      ? "—"
+                      : `1 : ${trade.ratioRiesgoBeneficio.toFixed(2)}`}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      trade.estado === "abierta"
+                        ? "bg-surface-muted text-foreground-muted"
+                        : "bg-risk-green-bg text-risk-green"
+                    }`}
+                  >
+                    {trade.estado}
+                  </span>
+                </td>
+                <td className="px-4 py-3 font-medium">
+                  {trade.resultadoPnl === undefined ? (
+                    <span className="text-foreground-muted">—</span>
+                  ) : (
+                    <span
+                      className={
+                        trade.resultadoPnl >= 0 ? "text-risk-green" : "text-risk-red"
+                      }
+                    >
+                      {formatMonto(trade.resultadoPnl, trade.divisa)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ControlesListaPaginada
+        visiblesCount={visibles.length}
+        totalCount={totalCount}
+        mostrarVerMas={mostrarVerMas}
+        mostrarPaginador={mostrarPaginador}
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        verMas={verMas}
+        irAPagina={irAPagina}
+      />
     </div>
   );
 }
@@ -160,6 +185,17 @@ function TablaPlazosFijos() {
   const vencidos = plazosFijos
     .filter((pf) => plazoFijoVencido(pf.fechaVencimiento))
     .sort((a, b) => b.fechaVencimiento.localeCompare(a.fechaVencimiento));
+
+  const {
+    visibles,
+    totalCount,
+    mostrarVerMas,
+    mostrarPaginador,
+    pagina,
+    totalPaginas,
+    verMas,
+    irAPagina,
+  } = useListaPaginada(vencidos);
 
   const liquidar = async (id: string) => {
     setLiquidandoId(id);
@@ -193,58 +229,71 @@ function TablaPlazosFijos() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[700px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-foreground-muted">
-            <th className="px-4 py-3 font-medium">Monto</th>
-            <th className="px-4 py-3 font-medium">TNA</th>
-            <th className="px-4 py-3 font-medium">Plazo</th>
-            <th className="px-4 py-3 font-medium">Fecha inicio</th>
-            <th className="px-4 py-3 font-medium">Vencimiento</th>
-            <th className="px-4 py-3 font-medium">Interés estimado</th>
-            <th className="px-4 py-3 font-medium">Total al vencimiento</th>
-            <th className="px-4 py-3 font-medium"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {vencidos.map((pf) => (
-            <tr key={pf.id} className="border-b border-border last:border-0">
-              <td className="px-4 py-3 font-medium text-foreground">
-                {formatMonto(pf.monto, pf.divisa)}
-              </td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.tasaTna}%</td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.plazoDias} días</td>
-              <td className="px-4 py-3 text-foreground-muted">{pf.fechaInicio}</td>
-              <td className="px-4 py-3 text-foreground-muted">
-                {pf.fechaVencimiento}
-              </td>
-              <td className="px-4 py-3 font-medium text-risk-green">
-                +{formatMonto(pf.interesEstimado, pf.divisa)}
-              </td>
-              <td className="px-4 py-3 font-medium text-foreground">
-                {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
-              </td>
-              <td className="px-4 py-3 text-right">
-                {pf.estado === "liquidado" ? (
-                  <span className="rounded-full bg-risk-green-bg px-2 py-0.5 text-xs font-medium text-risk-green">
-                    Liquidado
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => liquidar(pf.id)}
-                    disabled={liquidandoId === pf.id}
-                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
-                  >
-                    {liquidandoId === pf.id ? "Liquidando..." : "Liquidar"}
-                  </button>
-                )}
-              </td>
+    <div className="flex flex-col gap-3">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-foreground-muted">
+              <th className="px-4 py-3 font-medium">Monto</th>
+              <th className="px-4 py-3 font-medium">TNA</th>
+              <th className="px-4 py-3 font-medium">Plazo</th>
+              <th className="px-4 py-3 font-medium">Fecha inicio</th>
+              <th className="px-4 py-3 font-medium">Vencimiento</th>
+              <th className="px-4 py-3 font-medium">Interés estimado</th>
+              <th className="px-4 py-3 font-medium">Total al vencimiento</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {visibles.map((pf) => (
+              <tr key={pf.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium text-foreground">
+                  {formatMonto(pf.monto, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.tasaTna}%</td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.plazoDias} días</td>
+                <td className="px-4 py-3 text-foreground-muted">{pf.fechaInicio}</td>
+                <td className="px-4 py-3 text-foreground-muted">
+                  {pf.fechaVencimiento}
+                </td>
+                <td className="px-4 py-3 font-medium text-risk-green">
+                  +{formatMonto(pf.interesEstimado, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 font-medium text-foreground">
+                  {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {pf.estado === "liquidado" ? (
+                    <span className="rounded-full bg-risk-green-bg px-2 py-0.5 text-xs font-medium text-risk-green">
+                      Liquidado
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => liquidar(pf.id)}
+                      disabled={liquidandoId === pf.id}
+                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
+                    >
+                      {liquidandoId === pf.id ? "Liquidando..." : "Liquidar"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ControlesListaPaginada
+        visiblesCount={visibles.length}
+        totalCount={totalCount}
+        mostrarVerMas={mostrarVerMas}
+        mostrarPaginador={mostrarPaginador}
+        pagina={pagina}
+        totalPaginas={totalPaginas}
+        verMas={verMas}
+        irAPagina={irAPagina}
+      />
     </div>
   );
 }

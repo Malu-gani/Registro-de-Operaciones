@@ -123,20 +123,6 @@ export interface PlazoFijo {
 }
 
 /**
- * Movimiento manual (depósito o retiro) de la cuenta de Futuros del
- * portafolio. El balance de Futuros no es un campo suelto: se calcula
- * sumando estos movimientos más el resultado_pnl de las operaciones
- * crypto futuros ya cerradas.
- */
-export interface MovimientoFuturos {
-  id: string;
-  portafolioId: string;
-  monto: number; // positivo = depósito, negativo = retiro
-  fecha: string;
-  notas?: string;
-}
-
-/**
  * Saldo Disponible (Capital No Comprometido) de una cuenta de un portafolio.
  * El Comprometido no vive acá: se deriva de las posiciones abiertas.
  */

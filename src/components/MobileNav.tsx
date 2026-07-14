@@ -6,12 +6,11 @@ import { usePathname } from "next/navigation";
 // Solo las secciones ya disponibles (las de "Pronto" del Sidebar quedan
 // fuera de la barra inferior). Etiquetas cortas para que entren en una fila.
 const items = [
-  { label: "Resumen", href: "/dashboard" },
+  { label: "Cuenta", href: "/cuenta" },
   { label: "Nueva", href: "/nueva-operacion" },
   { label: "Posiciones", href: "/posiciones-abiertas" },
+  { label: "Resumen", href: "/dashboard" },
   { label: "Historial", href: "/historial" },
-  { label: "Portafolios", href: "/portafolio" },
-  { label: "Cuenta", href: "/cuenta" },
 ];
 
 export default function MobileNav() {
