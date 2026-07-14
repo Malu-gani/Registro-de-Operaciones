@@ -16,9 +16,12 @@ interface FormState {
   subTipoActivo: SubTipoAccion;
   fechaEntrada: string;
   notas: string;
-  precioEntrada: number;
-  precioStopLoss: number;
-  precioTakeProfit: number;
+  // Los precios se guardan como texto para poder tipear decimales que arrancan
+  // en 0 (ej. "0.5"): con estado numérico, el 0 intermedio colapsa a "" y se
+  // pierde el inicio del decimal. Se convierten a número al calcular/guardar.
+  precioEntrada: string;
+  precioStopLoss: string;
+  precioTakeProfit: string;
   cantidad: number;
 }
 
@@ -27,9 +30,9 @@ const estadoInicial: FormState = {
   subTipoActivo: "usd",
   fechaEntrada: new Date().toISOString().slice(0, 10),
   notas: "",
-  precioEntrada: 0,
-  precioStopLoss: 0,
-  precioTakeProfit: 0,
+  precioEntrada: "",
+  precioStopLoss: "",
+  precioTakeProfit: "",
   cantidad: 1,
 };
 
@@ -52,22 +55,26 @@ export default function AccionesForm() {
   const esCedear = data.subTipoActivo === "cedear";
   const divisa = esCedear ? "ARS" : "USD";
 
-  const camposIncompletos = !data.precioEntrada || !data.cantidad || !portafolioId;
+  const precioEntradaNum = parseFloat(data.precioEntrada);
+  const precioStopLossNum = parseFloat(data.precioStopLoss);
+  const precioTakeProfitNum = parseFloat(data.precioTakeProfit);
+
+  const camposIncompletos = !precioEntradaNum || !data.cantidad || !portafolioId;
 
   const camposFaltantes = (): string[] => {
     const faltantes: string[] = [];
     if (data.activo.trim().length < 2) faltantes.push("Activo (mínimo 2 caracteres)");
     if (!data.cantidad || data.cantidad <= 0)
       faltantes.push(`Cantidad de ${esCedear ? "CEDEARs" : "acciones"}`);
-    if (!data.precioEntrada || data.precioEntrada <= 0) faltantes.push("Precio de entrada");
+    if (!precioEntradaNum || precioEntradaNum <= 0) faltantes.push("Precio de entrada");
     return faltantes;
   };
 
   const analizar = () =>
     analizarRiesgoPosicionFija({
-      precioEntrada: data.precioEntrada,
-      precioStopLoss: data.precioStopLoss || undefined,
-      precioTakeProfit: data.precioTakeProfit || undefined,
+      precioEntrada: precioEntradaNum,
+      precioStopLoss: precioStopLossNum || undefined,
+      precioTakeProfit: precioTakeProfitNum || undefined,
       cantidad: data.cantidad,
       tipoOperacion: "long",
     });
@@ -92,9 +99,9 @@ export default function AccionesForm() {
           divisa,
           tipoOperacion: "long",
           fechaEntrada: data.fechaEntrada,
-          precioEntrada: data.precioEntrada,
-          precioStopLoss: data.precioStopLoss || undefined,
-          precioTakeProfit: data.precioTakeProfit || undefined,
+          precioEntrada: precioEntradaNum,
+          precioStopLoss: precioStopLossNum || undefined,
+          precioTakeProfit: precioTakeProfitNum || undefined,
           cantidad: analysis.tamañoPosicion,
           estado: "abierta",
           ratioRiesgoBeneficio: analysis.ratioRiesgoBeneficio,
@@ -185,11 +192,10 @@ export default function AccionesForm() {
             </span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioEntrada || ""}
-              onChange={(e) =>
-                setField("precioEntrada", Number(e.target.value))
-              }
+              value={data.precioEntrada}
+              onChange={(e) => setField("precioEntrada", e.target.value)}
             />
           </label>
 
@@ -197,11 +203,10 @@ export default function AccionesForm() {
             <span className={labelClasses}>Precio Stop Loss (opcional)</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioStopLoss || ""}
-              onChange={(e) =>
-                setField("precioStopLoss", Number(e.target.value))
-              }
+              value={data.precioStopLoss}
+              onChange={(e) => setField("precioStopLoss", e.target.value)}
             />
           </label>
 
@@ -209,11 +214,10 @@ export default function AccionesForm() {
             <span className={labelClasses}>Precio Take Profit (opcional)</span>
             <input
               type="number"
+              step="any"
               className={inputClasses}
-              value={data.precioTakeProfit || ""}
-              onChange={(e) =>
-                setField("precioTakeProfit", Number(e.target.value))
-              }
+              value={data.precioTakeProfit}
+              onChange={(e) => setField("precioTakeProfit", e.target.value)}
             />
           </label>
 
