@@ -261,6 +261,7 @@ export default function CuentaPage() {
 
   const [editandoSaldos, setEditandoSaldos] = useState(false);
   const [cuentaAbierta, setCuentaAbierta] = useState<CuentaId | null>(cuentaParam);
+  const [filtroCuenta, setFiltroCuenta] = useState<CuentaId | "todas">("todas");
 
   const esPortafolioEspecifico = portafolioActivoId !== TODOS_LOS_PORTAFOLIOS;
   const nombrePortafolio = portafolios.find((p) => p.id === portafolioActivoId)?.nombre;
@@ -277,6 +278,14 @@ export default function CuentaPage() {
     return comprometidoPorCuenta(trades, plazosNoLiquidados);
   }, [trades, plazosFijos]);
 
+  const movimientosFiltrados = useMemo(
+    () =>
+      filtroCuenta === "todas"
+        ? movimientos
+        : movimientos.filter((m) => m.cuenta === filtroCuenta),
+    [movimientos, filtroCuenta]
+  );
+
   const {
     visibles: movimientosVisibles,
     totalCount: totalMovimientos,
@@ -288,7 +297,7 @@ export default function CuentaPage() {
     verMas,
     colapsar,
     irAPagina,
-  } = useListaPaginada(movimientos, {
+  } = useListaPaginada(movimientosFiltrados, {
     inicial: 5,
     tamanoPagina: 15,
     conMinimizar: true,
@@ -405,6 +414,34 @@ export default function CuentaPage() {
               </p>
             ) : (
               <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { id: "todas" as const, label: "Todas" },
+                      ...CUENTAS.map((c) => ({ id: c.id, label: c.label })),
+                    ]
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFiltroCuenta(f.id)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                        filtroCuenta === f.id
+                          ? "border-brand bg-brand/10 text-foreground"
+                          : "border-border text-foreground-muted hover:text-foreground"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {movimientosFiltrados.length === 0 ? (
+                  <p className="text-sm text-foreground-muted">
+                    No hay movimientos en esta cuenta.
+                  </p>
+                ) : (
+                <>
                 <div className="overflow-x-auto rounded-xl border border-border bg-surface">
                   <table className="w-full min-w-[640px] text-sm">
                     <thead>
@@ -461,6 +498,8 @@ export default function CuentaPage() {
                   colapsar={colapsar}
                   irAPagina={irAPagina}
                 />
+                </>
+                )}
               </div>
             )}
           </div>
