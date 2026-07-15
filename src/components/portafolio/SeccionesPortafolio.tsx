@@ -48,12 +48,14 @@ function SeccionDistribucion({
   mensajeVacio: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
+    <div className="flex flex-col rounded-xl border border-border bg-surface p-6">
       <h3 className="mb-4 text-sm font-semibold text-foreground">{titulo}</h3>
       {data.length === 0 ? (
         <p className="text-sm text-foreground-muted">{mensajeVacio}</p>
       ) : (
-        <BarChart data={data} divisa={divisa} />
+        <div className="flex flex-1 items-center">
+          <BarChart data={data} divisa={divisa} />
+        </div>
       )}
     </div>
   );
@@ -124,6 +126,7 @@ function CuentaFuturosCard({
           </Link>
         )}
       </div>
+      <p className="mt-3 text-xs text-foreground-muted">Saldo total</p>
       <p
         className={`mt-1 text-3xl font-semibold ${
           balance >= 0 ? "text-risk-green" : "text-risk-red"
