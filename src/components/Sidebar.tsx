@@ -5,7 +5,7 @@ const items = [
   { label: "Nueva Operación", href: "/nueva-operacion" },
   { label: "Posiciones Abiertas", href: "/posiciones-abiertas" },
   { label: "Resumen", href: "/dashboard" },
-  { label: "Historial", href: "/historial" },
+  { label: "Historial de operaciones", href: "/historial" },
   { label: "Alertas", href: null },
   { label: "Ajustes", href: null },
 ];

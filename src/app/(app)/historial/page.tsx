@@ -82,20 +82,84 @@ function TablaOperaciones() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <div className="flex flex-col gap-3 md:hidden">
+        {visibles.map((trade) => (
+          <div key={trade.id} className="rounded-xl border border-border bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground">{trade.activo}</p>
+                <p className="text-xs text-foreground-muted">
+                  {trade.divisa} · {trade.fechaEntrada}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                {trade.resultadoPnl === undefined ? (
+                  <span className="text-sm text-foreground-muted">—</span>
+                ) : (
+                  <span
+                    className={`text-sm font-semibold ${
+                      trade.resultadoPnl >= 0 ? "text-risk-green" : "text-risk-red"
+                    }`}
+                  >
+                    {formatMonto(trade.resultadoPnl, trade.divisa)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
+              <p className="text-foreground-muted">
+                Tipo{" "}
+                <span className="block capitalize text-foreground">
+                  {trade.tipoOperacion}
+                </span>
+              </p>
+              <p className="text-foreground-muted">
+                Entrada{" "}
+                <span className="block text-foreground">{trade.precioEntrada}</span>
+              </p>
+              <p className="text-foreground-muted">
+                Stop Loss{" "}
+                <span className="block text-foreground">
+                  {trade.precioStopLoss ?? "—"}
+                </span>
+              </p>
+              <p className="text-foreground-muted">
+                Take Profit{" "}
+                <span className="block text-foreground">
+                  {trade.precioTakeProfit ?? "—"}
+                </span>
+              </p>
+              <p className="col-span-2 text-foreground-muted">
+                R:R{" "}
+                <span
+                  className={`ml-1 inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${rrBadgeClass(
+                    trade.ratioRiesgoBeneficio
+                  )}`}
+                >
+                  {trade.ratioRiesgoBeneficio === undefined
+                    ? "—"
+                    : `1 : ${trade.ratioRiesgoBeneficio.toFixed(2)}`}
+                </span>
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-foreground-muted">
               <th className="px-4 py-3 font-medium">Activo</th>
               <th className="px-4 py-3 font-medium">Divisa</th>
+              <th className="px-4 py-3 font-medium">P&L</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Fecha entrada</th>
               <th className="px-4 py-3 font-medium">Entrada</th>
               <th className="px-4 py-3 font-medium">Stop Loss</th>
               <th className="px-4 py-3 font-medium">Take Profit</th>
               <th className="px-4 py-3 font-medium">R:R</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium">P&L</th>
             </tr>
           </thead>
           <tbody>
@@ -106,6 +170,19 @@ function TablaOperaciones() {
                 </td>
                 <td className="px-4 py-3 text-foreground-muted">
                   {trade.divisa}
+                </td>
+                <td className="px-4 py-3 font-medium">
+                  {trade.resultadoPnl === undefined ? (
+                    <span className="text-foreground-muted">—</span>
+                  ) : (
+                    <span
+                      className={
+                        trade.resultadoPnl >= 0 ? "text-risk-green" : "text-risk-red"
+                      }
+                    >
+                      {formatMonto(trade.resultadoPnl, trade.divisa)}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 capitalize text-foreground-muted">
                   {trade.tipoOperacion}
@@ -132,30 +209,6 @@ function TablaOperaciones() {
                       ? "—"
                       : `1 : ${trade.ratioRiesgoBeneficio.toFixed(2)}`}
                   </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      trade.estado === "abierta"
-                        ? "bg-surface-muted text-foreground-muted"
-                        : "bg-risk-green-bg text-risk-green"
-                    }`}
-                  >
-                    {trade.estado}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-medium">
-                  {trade.resultadoPnl === undefined ? (
-                    <span className="text-foreground-muted">—</span>
-                  ) : (
-                    <span
-                      className={
-                        trade.resultadoPnl >= 0 ? "text-risk-green" : "text-risk-red"
-                      }
-                    >
-                      {formatMonto(trade.resultadoPnl, trade.divisa)}
-                    </span>
-                  )}
                 </td>
               </tr>
             ))}
@@ -338,7 +391,7 @@ export default function HistorialPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="mb-4 text-lg font-semibold text-foreground">
-        Historial
+        Historial de operaciones
       </h1>
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
