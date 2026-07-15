@@ -413,7 +413,7 @@ export default function CuentaPage() {
 
           <div>
             <h2 className="mb-3 text-sm font-semibold text-foreground">
-              Historial de movimientos
+              Historial de movimientos de la cuenta
             </h2>
             {movimientos.length === 0 ? (
               <p className="text-sm text-foreground-muted">
@@ -449,7 +449,44 @@ export default function CuentaPage() {
                   </p>
                 ) : (
                 <>
-                <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+                <div className="flex flex-col gap-3 md:hidden">
+                  {movimientosVisibles.map((m) => {
+                    const divisa = divisaDeCuenta(m.cuenta);
+                    return (
+                      <div
+                        key={m.id}
+                        className="animate-fade-in-row rounded-xl border border-border bg-surface p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">
+                              {TIPO_LABEL[m.tipo] ?? m.tipo}
+                            </p>
+                            <p className="text-xs text-foreground-muted">
+                              {CUENTAS.find((c) => c.id === m.cuenta)?.label ?? m.cuenta}{" "}
+                              · {m.fecha}
+                            </p>
+                          </div>
+                          <p
+                            className={`shrink-0 text-right text-sm font-semibold tabular-nums ${
+                              m.monto >= 0 ? "text-risk-green" : "text-risk-red"
+                            }`}
+                          >
+                            {m.monto >= 0 ? "+" : "−"}
+                            {formatMonto(Math.abs(m.monto), divisa)}
+                          </p>
+                        </div>
+                        {m.notas && (
+                          <p className="mt-2 border-t border-border pt-2 text-xs text-foreground-muted">
+                            {m.notas}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
                   <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-border text-left text-xs text-foreground-muted">
