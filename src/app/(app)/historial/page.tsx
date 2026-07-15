@@ -5,8 +5,9 @@ import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
+import { useFiltroFechaPreset, SelectorFechaPreset } from "@/components/FiltroFechaPreset";
 import { plazoFijoVencido } from "@/utils/riskCalculations";
-import type { Divisa } from "@/types/trading";
+import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
 
 const formatoUSD = new Intl.NumberFormat("es-AR", {
@@ -35,18 +36,34 @@ function rrBadgeClass(ratio: number | undefined) {
 }
 
 const tabs = [
-  { id: "operaciones", label: "Operaciones" },
+  { id: "acciones", label: "Acciones" },
+  { id: "cedears", label: "CEDEARs" },
+  { id: "crypto-futuros", label: "Cripto futuros" },
+  { id: "crypto-spot", label: "Cripto spot" },
   { id: "plazos-fijos", label: "Plazos Fijos" },
   { id: "graficos", label: "Gráficos P&L por divisa" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
-function TablaOperaciones() {
+function TablaOperacionesCerradas({
+  tipoActivo,
+  subTipoActivo,
+  mensajeVacio,
+}: {
+  tipoActivo: TipoActivo;
+  subTipoActivo?: SubTipoAccion | SubTipoCrypto;
+  mensajeVacio: string;
+}) {
   const { trades, loading, error } = useTrades();
 
   const ordenadas = trades
-    .filter((t) => t.estado === "cerrada")
+    .filter(
+      (t) =>
+        t.estado === "cerrada" &&
+        t.tipoActivo === tipoActivo &&
+        (subTipoActivo === undefined || t.subTipoActivo === subTipoActivo)
+    )
     .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada));
 
   const {
@@ -73,11 +90,7 @@ function TablaOperaciones() {
   }
 
   if (ordenadas.length === 0) {
-    return (
-      <p className="text-sm text-foreground-muted">
-        Todavía no hay operaciones cerradas.
-      </p>
-    );
+    return <p className="text-sm text-foreground-muted">{mensajeVacio}</p>;
   }
 
   return (
@@ -351,14 +364,31 @@ function TablaPlazosFijos() {
   );
 }
 
-function GraficoPorDivisa({ divisa }: { divisa: Divisa }) {
+function GraficoPorDivisa({
+  divisa,
+  subTipoActivo,
+  titulo,
+  desdeEfectivo,
+  hastaEfectivo,
+}: {
+  divisa: Divisa;
+  subTipoActivo?: SubTipoCrypto;
+  titulo: string;
+  desdeEfectivo: string | null;
+  hastaEfectivo: string | null;
+}) {
   const { trades } = useTrades();
 
   const curva = trades
-    .filter(
-      (t) =>
-        t.divisa === divisa && t.estado === "cerrada" && t.resultadoPnl !== undefined
-    )
+    .filter((t) => {
+      if (t.divisa !== divisa || t.estado !== "cerrada" || t.resultadoPnl === undefined)
+        return false;
+      if (subTipoActivo !== undefined && t.subTipoActivo !== subTipoActivo) return false;
+      const fecha = t.fechaSalida ?? "";
+      if (desdeEfectivo && fecha < desdeEfectivo) return false;
+      if (hastaEfectivo && fecha > hastaEfectivo) return false;
+      return true;
+    })
     .sort((a, b) => (a.fechaSalida ?? "").localeCompare(b.fechaSalida ?? ""))
     .reduce<{ fecha: string; valor: number }[]>((acc, t) => {
       const anterior = acc.length > 0 ? acc[acc.length - 1].valor : 0;
@@ -371,7 +401,7 @@ function GraficoPorDivisa({ divisa }: { divisa: Divisa }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">P&L en {divisa}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{titulo}</h2>
         <span
           className={`text-sm font-semibold ${
             total >= 0 ? "text-risk-green" : "text-risk-red"
@@ -380,13 +410,56 @@ function GraficoPorDivisa({ divisa }: { divisa: Divisa }) {
           {formatMonto(total, divisa)}
         </span>
       </div>
-      <EquityCurve puntos={curva} />
+      <EquityCurve puntos={curva} formatValor={(valor) => formatMonto(valor, divisa)} />
+    </div>
+  );
+}
+
+function GraficosPorDivisaSection() {
+  const filtro = useFiltroFechaPreset();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SelectorFechaPreset
+        preset={filtro.preset}
+        setPreset={filtro.setPreset}
+        desde={filtro.desde}
+        setDesde={filtro.setDesde}
+        hasta={filtro.hasta}
+        setHasta={filtro.setHasta}
+      />
+      <GraficoPorDivisa
+        divisa="USDT"
+        subTipoActivo="spot"
+        titulo="P&L Crypto Spot"
+        desdeEfectivo={filtro.desdeEfectivo}
+        hastaEfectivo={filtro.hastaEfectivo}
+      />
+      <GraficoPorDivisa
+        divisa="USDT"
+        subTipoActivo="futuros"
+        titulo="P&L Crypto Futuros"
+        desdeEfectivo={filtro.desdeEfectivo}
+        hastaEfectivo={filtro.hastaEfectivo}
+      />
+      <GraficoPorDivisa
+        divisa="USD"
+        titulo="P&L en USD"
+        desdeEfectivo={filtro.desdeEfectivo}
+        hastaEfectivo={filtro.hastaEfectivo}
+      />
+      <GraficoPorDivisa
+        divisa="ARS"
+        titulo="P&L en ARS"
+        desdeEfectivo={filtro.desdeEfectivo}
+        hastaEfectivo={filtro.hastaEfectivo}
+      />
     </div>
   );
 }
 
 export default function HistorialPage() {
-  const [tab, setTab] = useState<TabId>("operaciones");
+  const [tab, setTab] = useState<TabId>("acciones");
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -411,15 +484,40 @@ export default function HistorialPage() {
         ))}
       </div>
 
-      {tab === "operaciones" && <TablaOperaciones />}
-      {tab === "plazos-fijos" && <TablaPlazosFijos />}
-      {tab === "graficos" && (
-        <div className="flex flex-col gap-6">
-          <GraficoPorDivisa divisa="USDT" />
-          <GraficoPorDivisa divisa="USD" />
-          <GraficoPorDivisa divisa="ARS" />
-        </div>
+      {tab === "acciones" && (
+        <TablaOperacionesCerradas
+          key="acciones"
+          tipoActivo="acciones"
+          subTipoActivo="usd"
+          mensajeVacio="No tiene operaciones cerradas de Acciones en el historial."
+        />
       )}
+      {tab === "cedears" && (
+        <TablaOperacionesCerradas
+          key="cedears"
+          tipoActivo="acciones"
+          subTipoActivo="cedear"
+          mensajeVacio="No tiene operaciones cerradas de CEDEARs en el historial."
+        />
+      )}
+      {tab === "crypto-futuros" && (
+        <TablaOperacionesCerradas
+          key="crypto-futuros"
+          tipoActivo="crypto"
+          subTipoActivo="futuros"
+          mensajeVacio="No tiene operaciones cerradas de Cripto futuros en el historial."
+        />
+      )}
+      {tab === "crypto-spot" && (
+        <TablaOperacionesCerradas
+          key="crypto-spot"
+          tipoActivo="crypto"
+          subTipoActivo="spot"
+          mensajeVacio="No tiene operaciones cerradas de Cripto spot en el historial."
+        />
+      )}
+      {tab === "plazos-fijos" && <TablaPlazosFijos />}
+      {tab === "graficos" && <GraficosPorDivisaSection />}
     </div>
   );
 }
