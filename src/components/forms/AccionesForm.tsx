@@ -11,6 +11,7 @@ import RiskPanel from "../RiskPanel";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
+import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
 import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
 interface FormState {
@@ -27,10 +28,14 @@ interface FormState {
   cantidad: number;
 }
 
+function hoyISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const estadoInicial: FormState = {
   activo: "",
   subTipoActivo: "usd",
-  fechaEntrada: new Date().toISOString().slice(0, 10),
+  fechaEntrada: hoyISO(),
   notas: "",
   precioEntrada: "",
   precioStopLoss: "",
@@ -41,7 +46,7 @@ const estadoInicial: FormState = {
 export default function AccionesForm() {
   const { addTrade } = useTrades();
   const { refrescar } = useCuentas();
-  const { portafolioId, selectorField } = usePortafolioDestino();
+  const { portafolioId, tipoMercado, selectorField } = usePortafolioDestino();
   const [data, setData] = useState<FormState>(estadoInicial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +97,16 @@ export default function AccionesForm() {
       setSaved(false);
       return;
     }
+    if (data.fechaEntrada > hoyISO()) {
+      setError("La fecha no puede ser futura.");
+      setSaved(false);
+      return;
+    }
+    if (tipoMercado && !admiteOperacion(tipoMercado, "acciones")) {
+      setError(mensajeOperacionNoAdmitida(tipoMercado, "acciones"));
+      setSaved(false);
+      return;
+    }
     setGuardando(true);
     setFondosCuenta(null);
     try {
@@ -123,9 +138,8 @@ export default function AccionesForm() {
       if (cf) {
         setFondosCuenta(cf);
       } else {
-        setError(
-          e instanceof Error ? e.message : "No se pudo guardar la operación."
-        );
+        const msg = e instanceof Error ? e.message : "No se pudo guardar la operación.";
+        setError(msg.includes("FECHA_FUTURA") ? "La fecha no puede ser futura." : msg);
       }
       setSaved(false);
     } finally {
@@ -181,6 +195,7 @@ export default function AccionesForm() {
               type="date"
               className={inputClasses}
               value={data.fechaEntrada}
+              max={hoyISO()}
               onChange={(e) => setField("fechaEntrada", e.target.value)}
             />
           </label>

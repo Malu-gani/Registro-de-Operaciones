@@ -26,8 +26,9 @@ export type TipoMovimientoCuenta =
   | "plazo_liquidacion";
 
 /**
- * Portafolio del usuario (tabla `portafolios`). `tipoMercado` es solo
- * informativo — no restringe qué tipo de operaciones se pueden cargar.
+ * Portafolio del usuario (tabla `portafolios`). `tipoMercado` restringe qué
+ * cuentas y qué operaciones admite el portafolio (ver `utils/tipoMercado.ts`):
+ * Acciones -> ARS/USD, Cripto -> USDT Spot/Futuros, Mixto -> todo.
  */
 export interface Portafolio {
   id: string;

@@ -7,6 +7,7 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "@/context/PortafoliosContext";
 import { comprometidoPorCuenta } from "@/utils/cuentas";
+import { cuentasDeMercado } from "@/utils/tipoMercado";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import SeccionesPortafolio from "@/components/portafolio/SeccionesPortafolio";
 import GestionPortafolios from "@/components/portafolio/GestionPortafolios";
@@ -90,12 +91,14 @@ function hoyISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Panel para cargar los saldos iniciales de las 4 cuentas ("saldos de hoy"). */
+/** Panel para cargar los saldos iniciales de las cuentas del portafolio ("saldos de hoy"). */
 function SetupSaldos({
   portafolioId,
+  cuentas,
   onListo,
 }: {
   portafolioId: string;
+  cuentas: typeof CUENTAS;
   onListo: () => void;
 }) {
   const { setSaldoInicial } = useCuentas();
@@ -112,7 +115,7 @@ function SetupSaldos({
     setGuardando(true);
     setError(null);
     try {
-      for (const c of CUENTAS) {
+      for (const c of cuentas) {
         const monto = parseFloat(valores[c.id]);
         await setSaldoInicial(portafolioId, c.id, Number.isFinite(monto) ? monto : 0);
       }
@@ -137,7 +140,7 @@ function SetupSaldos({
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {CUENTAS.map((c) => (
+        {cuentas.map((c) => (
           <label key={c.id} className="flex flex-col gap-1">
             <span className={labelClasses}>{c.label}</span>
             <input
@@ -271,7 +274,16 @@ export default function CuentaPage() {
   const [filtroCuenta, setFiltroCuenta] = useState<CuentaId | "todas">("todas");
 
   const esPortafolioEspecifico = portafolioActivoId !== TODOS_LOS_PORTAFOLIOS;
-  const nombrePortafolio = portafolios.find((p) => p.id === portafolioActivoId)?.nombre;
+  const portafolioActivo = portafolios.find((p) => p.id === portafolioActivoId);
+  const nombrePortafolio = portafolioActivo?.nombre;
+
+  // Cuentas que el portafolio admite según su tipo de mercado (Acciones ->
+  // ARS/USD, Cripto -> USDT Spot/Futuros, Mixto -> todas).
+  const cuentasVisibles = portafolioActivo
+    ? CUENTAS.filter((c) =>
+        cuentasDeMercado(portafolioActivo.tipoMercado).includes(c.id)
+      )
+    : CUENTAS;
 
   const tieneSaldosCargados = useMemo(
     () => saldos.some((s) => s.portafolioId === portafolioActivoId),
@@ -320,6 +332,8 @@ export default function CuentaPage() {
         </div>
       )}
 
+      <GestionPortafolios />
+
       {!esPortafolioEspecifico ? (
         <div className="rounded-xl border border-border bg-surface p-6 text-sm text-foreground-muted">
           Elegí un portafolio específico en el selector de arriba para ver y
@@ -328,6 +342,7 @@ export default function CuentaPage() {
       ) : !tieneSaldosCargados || editandoSaldos ? (
         <SetupSaldos
           portafolioId={portafolioActivoId}
+          cuentas={cuentasVisibles}
           onListo={() => setEditandoSaldos(false)}
         />
       ) : (
@@ -350,7 +365,7 @@ export default function CuentaPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {CUENTAS.map((c) => {
+            {cuentasVisibles.map((c) => {
               const disponible = disponibleDe(portafolioActivoId, c.id);
               const comp = comprometido[c.id];
               const abierta = cuentaAbierta === c.id;
@@ -396,21 +411,6 @@ export default function CuentaPage() {
             })}
           </div>
 
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("distribucion")
-                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-            >
-              Ver distribución de Portafolio
-              <span aria-hidden="true">↓</span>
-            </button>
-          </div>
-
           <div>
             <h2 className="mb-3 text-sm font-semibold text-foreground">
               Historial de movimientos de la cuenta
@@ -425,7 +425,7 @@ export default function CuentaPage() {
                   {(
                     [
                       { id: "todas" as const, label: "Todas" },
-                      ...CUENTAS.map((c) => ({ id: c.id, label: c.label })),
+                      ...cuentasVisibles.map((c) => ({ id: c.id, label: c.label })),
                     ]
                   ).map((f) => (
                     <button
@@ -548,7 +548,7 @@ export default function CuentaPage() {
             )}
           </div>
 
-          <section id="distribucion" className="flex scroll-mt-6 flex-col gap-8">
+          <section className="flex flex-col gap-8">
             <h2 className="border-b border-border pb-2 text-base font-semibold text-foreground">
               Distribución de {nombrePortafolio}
             </h2>
@@ -558,8 +558,6 @@ export default function CuentaPage() {
               mostrarLinkCuenta={false}
             />
           </section>
-
-          <GestionPortafolios />
         </>
       )}
     </div>
