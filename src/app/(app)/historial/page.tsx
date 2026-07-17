@@ -10,6 +10,7 @@ import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
 import ExportarBotones from "@/components/historial/ExportarBotones";
+import ImportarPanel from "@/components/historial/ImportarPanel";
 
 const formatoUSD = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -43,6 +44,7 @@ const tabs = [
   { id: "crypto-spot", label: "Cripto spot" },
   { id: "plazos-fijos", label: "Plazos Fijos" },
   { id: "graficos", label: "Gráficos P&L por divisa" },
+  { id: "importar", label: "Importar" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -529,6 +531,7 @@ export default function HistorialPage() {
       )}
       {tab === "plazos-fijos" && <TablaPlazosFijos />}
       {tab === "graficos" && <GraficosPorDivisaSection />}
+      {tab === "importar" && <ImportarPanel />}
     </div>
   );
 }
