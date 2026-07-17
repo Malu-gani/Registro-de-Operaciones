@@ -13,9 +13,28 @@ export interface TablaCruda {
   filas: string[][];
 }
 
+/** Campo lógico que el parser necesita mapear a una columna del archivo. */
+export interface CampoImport {
+  id: string;
+  label: string;
+  requerido: boolean;
+}
+
+/** Mapa campo lógico -> índice de columna en el archivo (-1 si sin asignar). */
+export type IndicesColumnas = Record<string, number>;
+
 export interface ParserImportacion {
   plataforma: PlataformaImport;
-  /** Lee el archivo y devuelve los movimientos interpretados + errores por fila. */
+  /** Campos lógicos que el parser mapea (para la UI de mapeo manual). */
+  campos: CampoImport[];
+  /** Detecta automáticamente los índices de columna por alias de encabezado. */
+  detectar(headers: string[]): IndicesColumnas;
+  /**
+   * Mapea la tabla a movimientos. Si se pasan `indices` (mapeo manual del
+   * usuario), los usa; si no, autodetecta desde los encabezados.
+   */
+  mapear(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseo;
+  /** Conveniencia: lee el archivo, autodetecta y mapea. */
   parse(file: File): Promise<ResultadoParseo>;
 }
 

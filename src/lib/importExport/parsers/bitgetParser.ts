@@ -1,5 +1,5 @@
 import type { MovimientoImportado, ResultadoParseo } from "../universalOperation";
-import type { ParserImportacion, TablaCruda } from "./baseParser";
+import type { CampoImport, IndicesColumnas, ParserImportacion, TablaCruda } from "./baseParser";
 import { leerArchivo } from "./baseParser";
 import {
   buscarColumna,
@@ -14,15 +14,15 @@ import {
  *
  * PROVISIONAL: mapeado contra los formatos documentados de Bitget. El tipo
  * (spot vs. futuros) se detecta por la presencia de columnas de apalancamiento
- * o PnL realizado (propias de futuros). Calibrar con un export real; el preview
- * lo hace trivial.
+ * o PnL realizado (propias de futuros). Si la autodetección falla, la UI permite
+ * asignar las columnas a mano (mapeo manual).
  *
  *  - Spot:    Date, Pair, Side (Buy/Sell), Price, Filled/Executed, Fee, Total
  *  - Futuros: Time, Futures, Side (Open/Close Long/Short), Avg Price, Filled,
  *             Realized PnL, Fee, Leverage
  */
 
-const ALIAS = {
+const ALIAS: Record<string, string[]> = {
   fecha: ["date", "time", "order time", "fecha", "trade time", "ctime"],
   par: ["pair", "trading pair", "futures", "symbol", "contract", "par"],
   lado: ["side", "direction", "lado"],
@@ -33,43 +33,44 @@ const ALIAS = {
   apalancamiento: ["leverage", "apalancamiento", "lever"],
 };
 
-/** Mapeo puro (testeable en Node) de una tabla cruda de Bitget a movimientos. */
-export function mapearBitget(tabla: TablaCruda): ResultadoParseo {
-  const { headers, filas } = tabla;
-  const idx = {
-    fecha: buscarColumna(headers, ALIAS.fecha),
-    par: buscarColumna(headers, ALIAS.par),
-    lado: buscarColumna(headers, ALIAS.lado),
-    precio: buscarColumna(headers, ALIAS.precio),
-    cantidad: buscarColumna(headers, ALIAS.cantidad),
-    fee: buscarColumna(headers, ALIAS.fee),
-    pnl: buscarColumna(headers, ALIAS.pnl),
-    apalancamiento: buscarColumna(headers, ALIAS.apalancamiento),
-  };
+const CAMPOS: CampoImport[] = [
+  { id: "fecha", label: "Fecha / Time", requerido: true },
+  { id: "par", label: "Par / Símbolo", requerido: true },
+  { id: "lado", label: "Lado (Buy/Sell u Open/Close)", requerido: true },
+  { id: "precio", label: "Precio", requerido: true },
+  { id: "cantidad", label: "Cantidad ejecutada", requerido: true },
+  { id: "fee", label: "Comisión (fee)", requerido: false },
+  { id: "pnl", label: "PnL realizado (futuros)", requerido: false },
+  { id: "apalancamiento", label: "Apalancamiento (futuros)", requerido: false },
+];
 
-  // Futuros si el archivo trae apalancamiento o PnL realizado.
-  const esFuturos = idx.apalancamiento >= 0 || idx.pnl >= 0;
-  const subTipoActivo = esFuturos ? "futuros" : "spot";
+function detectar(headers: string[]): IndicesColumnas {
+  const idx: IndicesColumnas = {};
+  for (const campo of CAMPOS) {
+    idx[campo.id] = buscarColumna(headers, ALIAS[campo.id]);
+  }
+  return idx;
+}
 
-  const requeridas: [string, number][] = [
-    ["Fecha", idx.fecha],
-    ["Par", idx.par],
-    ["Lado", idx.lado],
-    ["Precio", idx.precio],
-    ["Cantidad", idx.cantidad],
-  ];
-  const faltante = requeridas.find(([, i]) => i === -1);
+function mapear(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseo {
+  const idx = indices ?? detectar(tabla.headers);
+
+  const faltante = CAMPOS.find((c) => c.requerido && (idx[c.id] ?? -1) < 0);
   if (faltante) {
     return {
       movimientos: [],
-      errores: [{ fila: 0, motivo: `No se encontró la columna "${faltante[0]}" en el archivo de Bitget.` }],
+      errores: [{ fila: 0, motivo: `Falta asignar la columna "${faltante.label}".` }],
     };
   }
+
+  // Futuros si el archivo trae apalancamiento o PnL realizado.
+  const esFuturos = (idx.apalancamiento ?? -1) >= 0 || (idx.pnl ?? -1) >= 0;
+  const subTipoActivo = esFuturos ? "futuros" : "spot";
 
   const movimientos: MovimientoImportado[] = [];
   const errores: ResultadoParseo["errores"] = [];
 
-  filas.forEach((celdas, i) => {
+  tabla.filas.forEach((celdas, i) => {
     const nroFila = i + 1;
     const fecha = parseFecha(celdas[idx.fecha], false);
     const lado = parseLado(celdas[idx.lado]);
@@ -96,15 +97,15 @@ export function mapearBitget(tabla: TablaCruda): ResultadoParseo {
       filaOriginal: nroFila,
     };
 
-    if (idx.fee >= 0) {
+    if ((idx.fee ?? -1) >= 0) {
       const fee = parseNumeroLocale(celdas[idx.fee]);
       if (fee !== null) mov.fee = Math.abs(fee);
     }
-    if (idx.pnl >= 0) {
+    if ((idx.pnl ?? -1) >= 0) {
       const pnl = parseNumeroLocale(celdas[idx.pnl]);
       if (pnl !== null) mov.pnlRealizado = pnl;
     }
-    if (idx.apalancamiento >= 0) {
+    if ((idx.apalancamiento ?? -1) >= 0) {
       const apal = parseNumeroLocale(celdas[idx.apalancamiento]);
       if (apal !== null && apal > 0) mov.apalancamiento = apal;
     }
@@ -117,7 +118,13 @@ export function mapearBitget(tabla: TablaCruda): ResultadoParseo {
 
 export const bitgetParser: ParserImportacion = {
   plataforma: "bitget",
+  campos: CAMPOS,
+  detectar,
+  mapear,
   async parse(file: File): Promise<ResultadoParseo> {
-    return mapearBitget(await leerArchivo(file));
+    return mapear(await leerArchivo(file));
   },
 };
+
+/** Export directo para tests en Node. */
+export const mapearBitget = mapear;
