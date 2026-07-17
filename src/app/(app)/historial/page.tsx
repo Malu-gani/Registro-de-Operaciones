@@ -9,6 +9,8 @@ import { useFiltroFechaPreset, SelectorFechaPreset } from "@/components/FiltroFe
 import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
+import ExportarBotones from "@/components/historial/ExportarBotones";
+import ImportarPanel from "@/components/historial/ImportarPanel";
 
 const formatoUSD = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -42,6 +44,7 @@ const tabs = [
   { id: "crypto-spot", label: "Cripto spot" },
   { id: "plazos-fijos", label: "Plazos Fijos" },
   { id: "graficos", label: "Gráficos P&L por divisa" },
+  { id: "importar", label: "Importar" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -458,14 +461,24 @@ function GraficosPorDivisaSection() {
   );
 }
 
+function CabeceraHistorial() {
+  const { trades } = useTrades();
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h1 className="text-lg font-semibold text-foreground">
+        Historial de operaciones
+      </h1>
+      <ExportarBotones trades={trades} />
+    </div>
+  );
+}
+
 export default function HistorialPage() {
   const [tab, setTab] = useState<TabId>("acciones");
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="mb-4 text-lg font-semibold text-foreground">
-        Historial de operaciones
-      </h1>
+      <CabeceraHistorial />
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {tabs.map((t) => (
@@ -518,6 +531,7 @@ export default function HistorialPage() {
       )}
       {tab === "plazos-fijos" && <TablaPlazosFijos />}
       {tab === "graficos" && <GraficosPorDivisaSection />}
+      {tab === "importar" && <ImportarPanel />}
     </div>
   );
 }

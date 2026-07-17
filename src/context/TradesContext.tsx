@@ -27,6 +27,8 @@ interface TradesContextValue {
       cantidadCerrada: number;
     }
   ) => Promise<void>;
+  /** Vuelve a leer las operaciones del servidor (tras una importación masiva). */
+  recargar: () => Promise<void>;
 }
 
 const TradesContext = createContext<TradesContextValue | null>(null);
@@ -108,7 +110,7 @@ export function TradesProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TradesContext.Provider
-      value={{ trades, loading, error, addTrade, closeTrade, closeTradePartial }}
+      value={{ trades, loading, error, addTrade, closeTrade, closeTradePartial, recargar: cargar }}
     >
       {children}
     </TradesContext.Provider>
