@@ -15,6 +15,7 @@ export function usePortafolioDestino() {
 
   const requiereSeleccion = portafolioActivoId === TODOS_LOS_PORTAFOLIOS;
   const portafolioId = requiereSeleccion ? seleccionado || undefined : portafolioActivoId;
+  const tipoMercado = portafolios.find((p) => p.id === portafolioId)?.tipoMercado;
 
   const selectorField = requiereSeleccion ? (
     <label className="col-span-2 flex flex-col gap-1">
@@ -34,5 +35,5 @@ export function usePortafolioDestino() {
     </label>
   ) : null;
 
-  return { portafolioId, selectorField };
+  return { portafolioId, tipoMercado, selectorField };
 }

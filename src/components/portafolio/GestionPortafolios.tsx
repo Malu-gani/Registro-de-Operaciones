@@ -1,21 +1,60 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePortafolios } from "@/context/PortafoliosContext";
+import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "@/context/PortafoliosContext";
 import { fetchTrades } from "@/lib/tradesApi";
 import { fetchPlazosFijos } from "@/lib/plazosFijosApi";
 import { fetchSaldos } from "@/lib/cuentasApi";
+import { comprometidoPorCuenta } from "@/utils/cuentas";
 import { inputClasses } from "@/components/formStyles";
-import { formatMonto, balanceFuturos } from "@/components/portafolio/utils";
-import type { Portafolio, Trade } from "@/types/trading";
+import { formatMonto } from "@/components/portafolio/utils";
+import CrearPortafolioModal from "@/components/portafolio/CrearPortafolioModal";
+import type { CuentaId, Divisa, Portafolio, PlazoFijo, SaldoCuenta, Trade } from "@/types/trading";
+
+const CUENTAS_INFO: { id: CuentaId; label: string; divisa: Divisa }[] = [
+  { id: "ars", label: "Pesos (ARS)", divisa: "ARS" },
+  { id: "usd", label: "Dólares (USD)", divisa: "USD" },
+  { id: "usdt_spot", label: "Cripto Spot (USDT)", divisa: "USDT" },
+  { id: "usdt_futuros", label: "Cripto Futuros (USDT)", divisa: "USDT" },
+];
+
+function IconoLapiz() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      className="h-4 w-4"
+    >
+      <path
+        d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconoCheck() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      className="h-4 w-4 text-brand"
+    >
+      <path d="M4 10.5l4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 /** Datos que necesita el modal de borrado, siempre traídos frescos del portafolio en cuestión (no depende de cuál esté activo en el Navbar). */
 function useDatosPortafolio(portafolioId: string) {
   const [trades, setTrades] = useState<Trade[] | null>(null);
-  const [plazosFijos, setPlazosFijos] = useState<{ monto: number; divisa: "USD" | "ARS" }[] | null>(
-    null
-  );
-  const [disponibleFuturos, setDisponibleFuturos] = useState<number | null>(null);
+  const [plazosFijos, setPlazosFijos] = useState<PlazoFijo[] | null>(null);
+  const [saldos, setSaldos] = useState<SaldoCuenta[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,19 +63,17 @@ function useDatosPortafolio(portafolioId: string) {
       fetchPlazosFijos(portafolioId),
       fetchSaldos(portafolioId),
     ])
-      .then(([t, p, saldos]) => {
+      .then(([t, p, s]) => {
         setTrades(t);
         setPlazosFijos(p);
-        setDisponibleFuturos(
-          saldos.find((s) => s.cuenta === "usdt_futuros")?.disponible ?? 0
-        );
+        setSaldos(s);
       })
       .catch((e) =>
         setError(e instanceof Error ? e.message : "No se pudieron cargar los datos del portafolio.")
       );
   }, [portafolioId]);
 
-  return { trades, plazosFijos, disponibleFuturos, error };
+  return { trades, plazosFijos, saldos, error };
 }
 
 function EliminarPortafolioModal({
@@ -47,20 +84,26 @@ function EliminarPortafolioModal({
   onClose: () => void;
 }) {
   const { eliminarPortafolio } = usePortafolios();
-  const { trades, plazosFijos, disponibleFuturos, error: errorCarga } =
+  const { trades, plazosFijos, saldos, error: errorCarga } =
     useDatosPortafolio(portafolio.id);
   const [confirmado, setConfirmado] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cargando = !trades || !plazosFijos || disponibleFuturos === null;
+  const cargando = !trades || !plazosFijos || !saldos;
   const abiertas = trades?.filter((t) => t.estado === "abierta") ?? [];
   const tieneAbiertas = abiertas.length > 0;
 
-  const { balance: saldoFuturos } =
-    trades && disponibleFuturos !== null
-      ? balanceFuturos(disponibleFuturos, trades)
-      : { balance: 0 };
+  // Comprometido = margen de operaciones abiertas + plazos fijos aún no
+  // liquidados (mismo criterio que /cuenta: sigue comprometido aunque venza).
+  const comprometido = comprometidoPorCuenta(
+    trades ?? [],
+    (plazosFijos ?? []).filter((pf) => pf.estado !== "liquidado")
+  );
+  const balancesPorCuenta = CUENTAS_INFO.map((c) => {
+    const disponible = saldos?.find((s) => s.cuenta === c.id)?.disponible ?? 0;
+    return { ...c, total: disponible + comprometido[c.id] };
+  }).filter((c) => c.total !== 0);
 
   const plazosFijosPorDivisa = (plazosFijos ?? []).reduce<Record<string, number>>(
     (acc, p) => {
@@ -119,16 +162,20 @@ function EliminarPortafolioModal({
               portafolio:
             </p>
             <ul className="mt-2 flex flex-col gap-1 rounded-md border border-border bg-surface-muted p-3 text-sm text-foreground">
-              <li>
-                Cuenta de Futuros:{" "}
-                <span
-                  className={
-                    saldoFuturos >= 0 ? "text-risk-green" : "text-risk-red"
-                  }
-                >
-                  {formatMonto(saldoFuturos, "USDT")}
-                </span>
-              </li>
+              {balancesPorCuenta.length === 0 ? (
+                <li className="text-foreground-muted">Sin saldos cargados</li>
+              ) : (
+                balancesPorCuenta.map((c) => (
+                  <li key={c.id}>
+                    {c.label}:{" "}
+                    <span
+                      className={c.total >= 0 ? "text-risk-green" : "text-risk-red"}
+                    >
+                      {formatMonto(c.total, c.divisa)}
+                    </span>
+                  </li>
+                ))
+              )}
               {Object.entries(plazosFijosPorDivisa).length === 0 ? (
                 <li className="text-foreground-muted">Sin plazos fijos cargados</li>
               ) : (
@@ -191,12 +238,18 @@ function EliminarPortafolioModal({
 }
 
 export default function GestionPortafolios() {
-  const { portafolios, renombrarPortafolio } = usePortafolios();
+  const {
+    portafolios,
+    renombrarPortafolio,
+    portafolioActivoId,
+    setPortafolioActivoId,
+  } = usePortafolios();
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nombreEditado, setNombreEditado] = useState("");
   const [portafolioABorrar, setPortafolioABorrar] = useState<Portafolio | null>(
     null
   );
+  const [mostrarCrear, setMostrarCrear] = useState(false);
 
   const iniciarEdicion = (p: Portafolio) => {
     setEditandoId(p.id);
@@ -212,47 +265,107 @@ export default function GestionPortafolios() {
 
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6">
-      <h2 className="text-sm font-semibold text-foreground">Mis Portafolios</h2>
-      <ul className="flex flex-col divide-y divide-border">
-        {portafolios.map((p) => (
-          <li key={p.id} className="flex items-center justify-between gap-3 py-2">
-            {editandoId === p.id ? (
-              <input
-                autoFocus
-                className={`${inputClasses} max-w-xs`}
-                value={nombreEditado}
-                onChange={(e) => setNombreEditado(e.target.value)}
-                onBlur={() => guardarEdicion(p.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") guardarEdicion(p.id);
-                  if (e.key === "Escape") setEditandoId(null);
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => iniciarEdicion(p)}
-                className="text-sm text-foreground hover:underline"
-              >
-                {p.nombre}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setPortafolioABorrar(p)}
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-risk-red hover:bg-risk-red-bg"
-            >
-              Borrar
-            </button>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-foreground">Mis Portafolios</h2>
+        <button
+          type="button"
+          onClick={() => setMostrarCrear(true)}
+          className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground hover:opacity-90"
+        >
+          + Nuevo portafolio
+        </button>
+      </div>
+
+      <p className="text-xs text-foreground-muted">
+        Elija un portafolio para verlo en el resto de la app, o edite su
+        nombre y elimínelo desde acá.
+      </p>
+
+      {portafolios.length === 0 ? (
+        <p className="text-sm text-foreground-muted">
+          Todavía no tiene portafolios cargados.
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border">
+          <li
+            onClick={() => setPortafolioActivoId(TODOS_LOS_PORTAFOLIOS)}
+            className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border-l-2 px-2 py-2 ${
+              portafolioActivoId === TODOS_LOS_PORTAFOLIOS
+                ? "border-brand bg-brand/10"
+                : "border-transparent hover:bg-surface-muted"
+            }`}
+          >
+            <span className="text-sm text-foreground">Todos los portafolios</span>
+            {portafolioActivoId === TODOS_LOS_PORTAFOLIOS && <IconoCheck />}
           </li>
-        ))}
-      </ul>
+
+          {portafolios.map((p) => {
+            const esActivo = p.id === portafolioActivoId;
+            return (
+              <li
+                key={p.id}
+                onClick={() => editandoId !== p.id && setPortafolioActivoId(p.id)}
+                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border-l-2 px-2 py-2 ${
+                  esActivo
+                    ? "border-brand bg-brand/10"
+                    : "border-transparent hover:bg-surface-muted"
+                }`}
+              >
+                {editandoId === p.id ? (
+                  <input
+                    autoFocus
+                    className={`${inputClasses} max-w-xs`}
+                    value={nombreEditado}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => setNombreEditado(e.target.value)}
+                    onBlur={() => guardarEdicion(p.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") guardarEdicion(p.id);
+                      if (e.key === "Escape") setEditandoId(null);
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-foreground">{p.nombre}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        iniciarEdicion(p);
+                      }}
+                      aria-label={`Editar nombre de ${p.nombre}`}
+                      className="rounded-md p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground"
+                    >
+                      <IconoLapiz />
+                    </button>
+                    {esActivo && <IconoCheck />}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPortafolioABorrar(p);
+                  }}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-risk-red hover:bg-risk-red-bg"
+                >
+                  Borrar
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {portafolioABorrar && (
         <EliminarPortafolioModal
           portafolio={portafolioABorrar}
           onClose={() => setPortafolioABorrar(null)}
         />
+      )}
+
+      {mostrarCrear && (
+        <CrearPortafolioModal onClose={() => setMostrarCrear(false)} />
       )}
     </section>
   );

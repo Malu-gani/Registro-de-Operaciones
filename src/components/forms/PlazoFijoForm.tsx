@@ -9,6 +9,7 @@ import type { CuentaId } from "@/types/trading";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
+import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
 import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
 interface FormState {
@@ -46,7 +47,7 @@ const formatoARS = new Intl.NumberFormat("es-AR", {
 export default function PlazoFijoForm() {
   const { addPlazoFijo } = usePlazosFijos();
   const { refrescar } = useCuentas();
-  const { portafolioId, selectorField } = usePortafolioDestino();
+  const { portafolioId, tipoMercado, selectorField } = usePortafolioDestino();
   const [data, setData] = useState<FormState>(estadoInicial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +90,11 @@ export default function PlazoFijoForm() {
     const faltantes = camposFaltantes();
     if (faltantes.length > 0) {
       setError(mensajeCamposFaltantes(faltantes));
+      setSaved(false);
+      return;
+    }
+    if (tipoMercado && !admiteOperacion(tipoMercado, "plazo-fijo")) {
+      setError(mensajeOperacionNoAdmitida(tipoMercado, "plazo-fijo"));
       setSaved(false);
       return;
     }

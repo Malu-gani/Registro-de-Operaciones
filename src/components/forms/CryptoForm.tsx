@@ -11,6 +11,7 @@ import RiskPanel from "../RiskPanel";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
+import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
 import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
 interface FormState {
@@ -29,11 +30,15 @@ interface FormState {
   precioTakeProfit: string;
 }
 
+function hoyISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const estadoInicial: FormState = {
   activo: "BTC",
   subTipoActivo: "futuros",
   tipoOperacion: "long",
-  fechaEntrada: new Date().toISOString().slice(0, 10),
+  fechaEntrada: hoyISO(),
   notas: "",
   monto: "",
   apalancamiento: 1,
@@ -45,7 +50,7 @@ const estadoInicial: FormState = {
 export default function CryptoForm() {
   const { addTrade } = useTrades();
   const { refrescar } = useCuentas();
-  const { portafolioId, selectorField } = usePortafolioDestino();
+  const { portafolioId, tipoMercado, selectorField } = usePortafolioDestino();
   const [data, setData] = useState<FormState>(estadoInicial);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +107,16 @@ export default function CryptoForm() {
       setSaved(false);
       return;
     }
+    if (data.fechaEntrada > hoyISO()) {
+      setError("La fecha no puede ser futura.");
+      setSaved(false);
+      return;
+    }
+    if (tipoMercado && !admiteOperacion(tipoMercado, "crypto")) {
+      setError(mensajeOperacionNoAdmitida(tipoMercado, "crypto"));
+      setSaved(false);
+      return;
+    }
     setGuardando(true);
     setFondosCuenta(null);
     try {
@@ -134,9 +149,8 @@ export default function CryptoForm() {
       if (cf) {
         setFondosCuenta(cf);
       } else {
-        setError(
-          e instanceof Error ? e.message : "No se pudo guardar la operación."
-        );
+        const msg = e instanceof Error ? e.message : "No se pudo guardar la operación.";
+        setError(msg.includes("FECHA_FUTURA") ? "La fecha no puede ser futura." : msg);
       }
       setSaved(false);
     } finally {
@@ -218,6 +232,7 @@ export default function CryptoForm() {
               type="date"
               className={inputClasses}
               value={data.fechaEntrada}
+              max={hoyISO()}
               onChange={(e) => setField("fechaEntrada", e.target.value)}
             />
           </label>

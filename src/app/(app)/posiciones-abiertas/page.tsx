@@ -83,6 +83,10 @@ function CerrarOperacionModal({
       setError("Complete precio, fecha y cantidad de salida.");
       return;
     }
+    if (fechaSalida > hoyISO()) {
+      setError("La fecha no puede ser futura.");
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -95,7 +99,8 @@ function CerrarOperacionModal({
       await refrescar();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al cerrar la operación");
+      const msg = e instanceof Error ? e.message : "Error al cerrar la operación";
+      setError(msg.includes("FECHA_FUTURA") ? "La fecha no puede ser futura." : msg);
       setGuardando(false);
     }
   }
@@ -161,6 +166,7 @@ function CerrarOperacionModal({
           <input
             type="date"
             value={fechaSalida}
+            max={hoyISO()}
             onChange={(e) => setFechaSalida(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
           />
