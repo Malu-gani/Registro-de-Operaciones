@@ -2,6 +2,7 @@
 
 import type { RiskAnalysis } from "@/types/trading";
 import { getRiskLevel, type ClaseActivo, type NivelRiesgo } from "@/utils/riskCalculations";
+import { usePreferencias } from "@/context/PreferenciasContext";
 
 function rrNivel(ratio: number): "bajo" | "moderado" | "alto" {
   if (ratio < 1) return "alto";
@@ -59,6 +60,10 @@ export default function RiskPanel({
   divisa?: "USD" | "ARS" | "USDT";
   claseActivo: ClaseActivo;
 }) {
+  // Umbrales personalizados del semáforo (o los default si no los tocó). El hook
+  // va antes de cualquier return temprano para no romper el orden de hooks.
+  const { umbrales } = usePreferencias();
+
   if (camposIncompletos) {
     return (
       <div className="rounded-xl border border-border bg-surface p-6">
@@ -99,7 +104,7 @@ export default function RiskPanel({
   const tieneRR = analysis.ratioRiesgoBeneficio !== undefined;
 
   const nivelRiesgo = tieneStopLoss
-    ? getRiskLevel(Math.abs(analysis.perdidaMaximaPorcentaje!), claseActivo)
+    ? getRiskLevel(Math.abs(analysis.perdidaMaximaPorcentaje!), claseActivo, umbrales)
     : null;
   const nivelRR = tieneRR ? rrNivel(analysis.ratioRiesgoBeneficio!) : null;
 

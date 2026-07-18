@@ -1,6 +1,6 @@
 import SeccionCuenta from "@/components/ajustes/SeccionCuenta";
 import SeccionTema from "@/components/ajustes/SeccionTema";
-import SeccionAjustes from "@/components/ajustes/SeccionAjustes";
+import SeccionUmbrales from "@/components/ajustes/SeccionUmbrales";
 
 export default function AjustesPage() {
   return (
@@ -11,12 +11,7 @@ export default function AjustesPage() {
 
       <SeccionTema />
 
-      <SeccionAjustes
-        titulo="Semáforo de riesgo"
-        descripcion="Personalizá los cortes de riesgo bajo / medio / alto por tipo de activo."
-      >
-        <p className="text-xs text-foreground-muted">En construcción.</p>
-      </SeccionAjustes>
+      <SeccionUmbrales />
     </div>
   );
 }
