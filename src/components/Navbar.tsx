@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signOut } from "@/app/actions";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "@/context/PortafoliosContext";
 import CrearPortafolioModal from "@/components/portafolio/CrearPortafolioModal";
+import ToggleTema from "@/components/ajustes/ToggleTema";
 
 const CREAR_PORTAFOLIO = "__crear__";
 
@@ -49,6 +50,8 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         <span className="hidden text-xs text-foreground-muted sm:inline">
           {userEmail}
         </span>
+
+        <ToggleTema />
 
         <form action={signOut}>
           <button

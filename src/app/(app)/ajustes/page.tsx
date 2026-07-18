@@ -1,5 +1,4 @@
 import SeccionCuenta from "@/components/ajustes/SeccionCuenta";
-import SeccionTema from "@/components/ajustes/SeccionTema";
 import SeccionUmbrales from "@/components/ajustes/SeccionUmbrales";
 import SeccionBorrarCuenta from "@/components/ajustes/SeccionBorrarCuenta";
 
@@ -9,8 +8,6 @@ export default function AjustesPage() {
       <h1 className="text-lg font-semibold text-foreground">Ajustes</h1>
 
       <SeccionCuenta />
-
-      <SeccionTema />
 
       <SeccionUmbrales />
 
