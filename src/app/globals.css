@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f8;
+  --background: #f5f4fb;
   --surface: #ffffff;
-  --surface-muted: #eef1f4;
-  --foreground: #101828;
-  --foreground-muted: #667085;
-  --border: #e4e7ec;
+  --surface-muted: #f0edfa;
+  --foreground: #1a1530;
+  --foreground-muted: #6b6484;
+  --border: #e6e2f2;
 
-  --brand: #0f5f52;
+  --brand: #7c3aed;
   --brand-foreground: #ffffff;
+
+  /* Acentos del look: resplandor y degradé de la tarjeta hero de P&L. */
+  --glow: rgba(124, 58, 237, 0.35);
+  --hero-from: #7c3aed;
+  --hero-to: #4c1d95;
+  --hero-foreground: #ffffff;
 
   --risk-green: #067647;
   --risk-green-bg: #ecfdf3;
@@ -31,14 +37,14 @@
   --risk-cyan-bg: #ecfeff;
   --risk-cyan-border: #a5f3fc;
 
-  --chart-1: #2970ff;
-  --chart-2: #7a5af8;
-  --chart-3: #f79009;
-  --chart-4: #ee46bc;
-  --chart-5: #06aed4;
-  --chart-6: #66c61c;
-  --chart-7: #444ce7;
-  --chart-8: #f63d68;
+  --chart-1: #7c3aed;
+  --chart-2: #9061f9;
+  --chart-3: #b07bfa;
+  --chart-4: #d946ef;
+  --chart-5: #6366f1;
+  --chart-6: #0e9384;
+  --chart-7: #e05299;
+  --chart-8: #4f46e5;
 }
 
 @theme inline {
@@ -89,15 +95,20 @@
    valor 'auto' se resuelve en JS al tema del sistema, así que acá solo existe
    el override explícito a oscuro; la ausencia de data-theme = claro. */
 :root[data-theme="oscuro"] {
-    --background: #0b0f14;
-    --surface: #12181f;
-    --surface-muted: #1a222b;
-    --foreground: #e5e9ee;
-    --foreground-muted: #8a93a0;
-    --border: #232b35;
+    --background: #0e0b1a;
+    --surface: #171326;
+    --surface-muted: #211b38;
+    --foreground: #ece9f5;
+    --foreground-muted: #9a91b8;
+    --border: #2a2340;
 
-    --brand: #2dd4bf;
-    --brand-foreground: #0b0f14;
+    --brand: #8b5cf6;
+    --brand-foreground: #0e0b1a;
+
+    --glow: rgba(139, 92, 246, 0.45);
+    --hero-from: #7c3aed;
+    --hero-to: #3b1a78;
+    --hero-foreground: #f5f2ff;
 
     --risk-green: #4ade80;
     --risk-green-bg: #10241a;
@@ -119,14 +130,14 @@
     --risk-cyan-bg: #083344;
     --risk-cyan-border: #155e75;
 
-    --chart-1: #528bff;
-    --chart-2: #9b8afb;
-    --chart-3: #ffb258;
-    --chart-4: #f172d0;
-    --chart-5: #22d3ee;
-    --chart-6: #a6ef67;
-    --chart-7: #8098f9;
-    --chart-8: #fd6f8e;
+    --chart-1: #8b5cf6;
+    --chart-2: #a78bfa;
+    --chart-3: #c084fc;
+    --chart-4: #e879f9;
+    --chart-5: #6366f1;
+    --chart-6: #22d3ee;
+    --chart-7: #f472b6;
+    --chart-8: #818cf8;
 }
 
 body {
@@ -155,5 +166,57 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-row {
     animation: none;
+  }
+}
+
+/* ============================================================
+   Utilidades del look violeta ("glass" + glow + hover).
+   CSS plano (Tailwind v4 no necesita @layer acá). Las clases
+   leen los tokens, así que siguen el tema claro/oscuro solas.
+   ============================================================ */
+
+/* Elevación sutil en hover para tarjetas. Envuelto en (hover:hover)
+   para no dispararse en pantallas táctiles. */
+.card-hover {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+@media (hover: hover) {
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+    box-shadow: 0 8px 24px -12px var(--glow);
+  }
+}
+
+/* Degradé + glow de la tarjeta destacada de P&L. */
+.hero-gradient {
+  background:
+    radial-gradient(
+      120% 140% at 85% 0%,
+      color-mix(in srgb, var(--hero-from) 65%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+  color: var(--hero-foreground);
+  box-shadow: 0 18px 48px -20px var(--glow);
+}
+
+/* Resplandor sutil reutilizable (avatar, curva, acentos). */
+.glow-ring {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 40%, transparent),
+    0 0 18px -4px var(--glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover {
+    transition: none;
+  }
+  .card-hover:hover {
+    transform: none;
   }
 }

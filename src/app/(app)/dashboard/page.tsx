@@ -77,10 +77,12 @@ function fechaDesdePreset(preset: Preset): string | null {
 function KpiCard({
   label,
   value,
+  icon,
   tone = "neutral",
 }: {
   label: string;
   value: string;
+  icon?: React.ReactNode;
   tone?: "neutral" | "positive" | "negative";
 }) {
   const toneClass =
@@ -91,16 +93,43 @@ function KpiCard({
         : "text-foreground";
 
   return (
-    <div className="flex min-w-0 flex-col rounded-xl border border-border bg-surface p-4">
-      <p className="text-xs text-foreground-muted">{label}</p>
+    <div className="card-hover flex min-w-0 flex-col rounded-xl border border-border bg-surface p-4">
+      <div className="flex items-center gap-2">
+        {icon && (
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+            {icon}
+          </span>
+        )}
+        <p className="min-w-0 truncate text-xs text-foreground-muted">{label}</p>
+      </div>
       <p
-        className={`mt-1 break-words text-xl font-semibold leading-tight tabular-nums sm:text-2xl ${toneClass}`}
+        className={`mt-2 break-words text-xl font-semibold leading-tight tabular-nums sm:text-2xl ${toneClass}`}
       >
         {value}
       </p>
     </div>
   );
 }
+
+/** Íconos inline (stroke = currentColor) para las KPI cards. */
+const iconos = {
+  acierto: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  operaciones: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m7 14 3-3 3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  ratio: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+};
 
 export default function DashboardPage() {
   const { trades, loading, error } = useTrades();
@@ -186,7 +215,7 @@ export default function DashboardPage() {
             key={c.id}
             type="button"
             onClick={() => setCategoria(c.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               categoria === c.id
                 ? "border-brand text-foreground"
                 : "border-transparent text-foreground-muted hover:text-foreground"
@@ -205,10 +234,10 @@ export default function DashboardPage() {
               key={p.id}
               type="button"
               onClick={() => setPreset(p.id)}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
                 preset === p.id
                   ? "border-brand bg-brand/10 text-foreground"
-                  : "border-border text-foreground-muted hover:text-foreground"
+                  : "border-border text-foreground-muted hover:border-brand/40 hover:text-foreground"
               }`}
             >
               {p.label}
@@ -247,18 +276,51 @@ export default function DashboardPage() {
         </div>
       ) : (
       <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <KpiCard label="Tasa de acierto" value={`${winRate.toFixed(0)}%`} />
-        <KpiCard
-          label={`P&L acumulado (${moneda})`}
-          value={`${pnlAcumulado >= 0 ? "+" : ""}${formatearMoneda(pnlAcumulado, moneda)}`}
-          tone={pnlAcumulado >= 0 ? "positive" : "negative"}
-        />
-        <KpiCard label="Operaciones cerradas" value={`${cerradas.length}`} />
-        <KpiCard label="R:R promedio" value={`1 : ${rrPromedio.toFixed(2)}`} />
+      {/* Tarjeta destacada: P&L acumulado del período. */}
+      <div className="hero-gradient relative flex flex-col gap-4 overflow-hidden rounded-2xl p-6 sm:p-7">
+        <div className="flex items-center gap-2 text-sm font-medium opacity-80">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-white/15">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+              <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="m19 9-5 5-4-4-3 3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          P&L acumulado ({moneda})
+        </div>
+        <p className="break-words text-3xl font-bold leading-none tabular-nums sm:text-4xl">
+          {pnlAcumulado >= 0 ? "+" : ""}
+          {formatearMoneda(pnlAcumulado, moneda)}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+            Tasa de acierto {winRate.toFixed(0)}%
+          </span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+            {cerradas.length}{" "}
+            {cerradas.length === 1 ? "operación" : "operaciones"}
+          </span>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <KpiCard
+          label="Tasa de acierto"
+          value={`${winRate.toFixed(0)}%`}
+          icon={iconos.acierto}
+        />
+        <KpiCard
+          label="Operaciones cerradas"
+          value={`${cerradas.length}`}
+          icon={iconos.operaciones}
+        />
+        <KpiCard
+          label="R:R promedio"
+          value={`1 : ${rrPromedio.toFixed(2)}`}
+          icon={iconos.ratio}
+        />
+      </div>
+
+      <div className="card-hover rounded-xl border border-border bg-surface p-6">
         <h2 className="mb-4 text-sm font-semibold text-foreground">
           Evolución del P&L acumulado ({moneda})
         </h2>
@@ -271,7 +333,7 @@ export default function DashboardPage() {
       )}
 
       {abiertas.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-6">
+        <div className="card-hover rounded-xl border border-border bg-surface p-6">
           <h2 className="mb-2 text-sm font-semibold text-foreground">
             Operaciones abiertas
           </h2>
