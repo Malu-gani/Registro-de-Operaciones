@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { CuentaId } from "@/types/trading";
-import type { PlataformaImport } from "@/lib/importExport/universalOperation";
+import type { ErrorFila, PlataformaImport } from "@/lib/importExport/universalOperation";
 import type { IndicesColumnas, TablaCruda } from "@/lib/importExport/parsers/baseParser";
 import { leerArchivo } from "@/lib/importExport/parsers/baseParser";
 import { PARSERS, PLATAFORMAS_IMPORT } from "@/lib/importExport/parsers";
-import { reconstruirFIFO } from "@/lib/importExport/fifoReconstruction";
+import { reconstruirFIFO, type OperacionReconstruida } from "@/lib/importExport/fifoReconstruction";
 import {
   faltantePorCuenta,
   importarOperaciones,
@@ -50,15 +50,36 @@ export default function ImportarPanel() {
   const [resultadoImport, setResultadoImport] = useState<ResultadoImportacion | null>(null);
 
   const parser = PARSERS[plataforma];
+  const sinFifo = parser?.sinFifo ?? false;
 
-  const resultado = useMemo(
-    () => (tabla && parser ? parser.mapear(tabla, indices) : null),
-    [tabla, parser, indices]
-  );
-  const operaciones = useMemo(
-    () => (resultado ? reconstruirFIFO(resultado.movimientos) : []),
-    [resultado]
-  );
+  // Reconstrucción unificada: los parsers de ejecuciones sueltas (iol/bitget)
+  // pasan por FIFO; el formato propio ya trae operaciones redondas.
+  const parseo = useMemo<{
+    operaciones: OperacionReconstruida[];
+    errores: ErrorFila[];
+    leidos: number;
+    ignoradas: number;
+  }>(() => {
+    if (!tabla || !parser) return { operaciones: [], errores: [], leidos: 0, ignoradas: 0 };
+    if (parser.sinFifo && parser.mapearOperaciones) {
+      const r = parser.mapearOperaciones(tabla, indices);
+      return {
+        operaciones: r.operaciones,
+        errores: r.errores,
+        leidos: r.operaciones.length,
+        ignoradas: r.ignoradas ?? 0,
+      };
+    }
+    const r = parser.mapear(tabla, indices);
+    return {
+      operaciones: reconstruirFIFO(r.movimientos),
+      errores: r.errores,
+      leidos: r.movimientos.length,
+      ignoradas: 0,
+    };
+  }, [tabla, parser, indices]);
+
+  const operaciones = parseo.operaciones;
 
   const cambiarPlataforma = (p: PlataformaImport) => {
     setPlataforma(p);
@@ -112,13 +133,25 @@ export default function ImportarPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-xl border border-risk-yellow-border bg-risk-yellow-bg p-4 text-sm text-risk-yellow">
-        La lectura automática de las columnas de IOL y Bitget todavía está en
-        pruebas: si el sistema no reconoce sola alguna columna, asignala a mano
-        en la sección de abajo. Con esos datos armamos cada operación
-        emparejando tus compras y ventas por orden de antigüedad (método FIFO:
-        la primera compra se cierra con la primera venta, y así sucesivamente).
-        Al confirmar, las operaciones se dan de alta y se ajustan los saldos del
-        portafolio que elijas.
+        {sinFifo ? (
+          <>
+            Estás re-importando el formato propio del diario: cada fila ya es una
+            operación completa (abierta o cerrada), así que no se reconstruye por
+            FIFO, se carga tal cual. Las filas de plazos fijos u otras que no sean
+            operaciones se ignoran. Al confirmar, las operaciones se dan de alta y
+            se ajustan los saldos del portafolio que elijas.
+          </>
+        ) : (
+          <>
+            La lectura automática de las columnas de IOL y Bitget todavía está en
+            pruebas: si el sistema no reconoce sola alguna columna, asignala a mano
+            en la sección de abajo. Con esos datos armamos cada operación
+            emparejando tus compras y ventas por orden de antigüedad (método FIFO:
+            la primera compra se cierra con la primera venta, y así sucesivamente).
+            Al confirmar, las operaciones se dan de alta y se ajustan los saldos del
+            portafolio que elijas.
+          </>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -175,11 +208,13 @@ export default function ImportarPanel() {
         />
       )}
 
-      {resultado && (
+      {tabla && parser && (
         <PreviewOperaciones
           operaciones={operaciones}
-          errores={resultado.errores}
-          movimientosLeidos={resultado.movimientos.length}
+          errores={parseo.errores}
+          leidos={parseo.leidos}
+          ignoradas={parseo.ignoradas}
+          sinFifo={sinFifo}
         />
       )}
 
@@ -245,11 +280,15 @@ function MapeoColumnas({
 function PreviewOperaciones({
   operaciones,
   errores,
-  movimientosLeidos,
+  leidos,
+  ignoradas = 0,
+  sinFifo = false,
 }: {
-  operaciones: ReturnType<typeof reconstruirFIFO>;
+  operaciones: OperacionReconstruida[];
   errores: { fila: number; motivo: string }[];
-  movimientosLeidos: number;
+  leidos: number;
+  ignoradas?: number;
+  sinFifo?: boolean;
 }) {
   const cerradas = operaciones.filter((o) => o.estado === "cerrada").length;
   const abiertas = operaciones.length - cerradas;
@@ -257,10 +296,15 @@ function PreviewOperaciones({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-foreground-muted">{movimientosLeidos} ejecuciones leídas</span>
+        <span className="text-foreground-muted">
+          {sinFifo ? `${leidos} operaciones leídas` : `${leidos} ejecuciones leídas`}
+        </span>
         <span className="font-medium text-foreground">
           {operaciones.length} operaciones ({cerradas} cerradas, {abiertas} abiertas)
         </span>
+        {ignoradas > 0 && (
+          <span className="text-foreground-muted">{ignoradas} filas ignoradas</span>
+        )}
         {errores.length > 0 && (
           <span className="text-risk-red">{errores.length} filas con problemas</span>
         )}
