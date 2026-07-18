@@ -7,7 +7,7 @@ const items = [
   { label: "Resumen", href: "/dashboard" },
   { label: "Historial de operaciones", href: "/historial" },
   { label: "Alertas", href: null },
-  { label: "Ajustes", href: null },
+  { label: "Ajustes", href: "/ajustes" },
 ];
 
 export default function Sidebar() {

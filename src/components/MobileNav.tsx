@@ -11,6 +11,7 @@ const items = [
   { label: "Posiciones", href: "/posiciones-abiertas" },
   { label: "Resumen", href: "/dashboard" },
   { label: "Historial", href: "/historial" },
+  { label: "Ajustes", href: "/ajustes" },
 ];
 
 export default function MobileNav() {

@@ -84,8 +84,11 @@
   --font-sans: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Tema oscuro. El atributo data-theme lo fija un script inline en el <head>
+   (antes de pintar, sin parpadeo) y lo mantiene el PreferenciasContext. El
+   valor 'auto' se resuelve en JS al tema del sistema, así que acá solo existe
+   el override explícito a oscuro; la ausencia de data-theme = claro. */
+:root[data-theme="oscuro"] {
     --background: #0b0f14;
     --surface: #12181f;
     --surface-muted: #1a222b;
@@ -124,7 +127,6 @@
     --chart-6: #a6ef67;
     --chart-7: #8098f9;
     --chart-8: #fd6f8e;
-  }
 }
 
 body {
