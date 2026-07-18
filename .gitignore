@@ -13,3 +13,6 @@ next-env.d.ts
 # misc
 .DS_Store
 *.log
+
+# archivos de ejemplo para probar el importador (locales, no se versionan)
+/test-imports/
