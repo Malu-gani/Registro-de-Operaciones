@@ -28,7 +28,7 @@ export default function MobileNav() {
             href={item.href}
             className={`flex flex-1 flex-col items-center justify-center border-t-2 px-1 py-2.5 text-center text-[11px] font-medium leading-tight transition-colors ${
               activo
-                ? "border-brand text-brand"
+                ? "border-brand bg-brand/10 text-brand"
                 : "border-transparent text-foreground-muted"
             }`}
           >

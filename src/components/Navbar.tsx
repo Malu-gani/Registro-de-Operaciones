@@ -24,7 +24,7 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-surface px-4 sm:px-6">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand text-sm font-semibold text-brand-foreground">
+        <span className="glow-ring flex h-7 w-7 items-center justify-center rounded-md bg-brand text-sm font-semibold text-brand-foreground">
           T
         </span>
         <span className="hidden text-sm font-semibold text-foreground sm:inline">
@@ -36,7 +36,7 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         <select
           value={portafolioActivoId}
           onChange={handleChange}
-          className="min-w-0 max-w-[45vw] rounded-md border border-border bg-surface-muted px-3 py-1.5 text-sm text-foreground outline-none sm:max-w-none"
+          className="min-w-0 max-w-[45vw] rounded-md border border-border bg-surface-muted px-3 py-1.5 text-sm text-foreground outline-none transition-colors hover:border-brand/40 sm:max-w-none"
         >
           <option value={TODOS_LOS_PORTAFOLIOS}>Todos los portafolios</option>
           {portafolios.map((p) => (
@@ -47,8 +47,11 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
           <option value={CREAR_PORTAFOLIO}>+ Crear portafolio...</option>
         </select>
 
-        <span className="hidden text-xs text-foreground-muted sm:inline">
-          {userEmail}
+        <span
+          title={userEmail}
+          className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold uppercase text-brand sm:flex"
+        >
+          {(userEmail.trim()[0] ?? "?").toUpperCase()}
         </span>
 
         <ToggleTema />
@@ -56,7 +59,7 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         <form action={signOut}>
           <button
             type="submit"
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground-muted hover:bg-surface-muted"
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground-muted transition-colors hover:border-brand/40 hover:bg-surface-muted hover:text-foreground"
           >
             Salir
           </button>

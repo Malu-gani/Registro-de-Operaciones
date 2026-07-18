@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const items = [
   { label: "Cuenta", href: "/cuenta" },
@@ -11,28 +14,41 @@ const items = [
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <nav className="hidden w-56 shrink-0 border-r border-border bg-surface px-3 py-4 sm:block">
       <ul className="flex flex-col gap-1">
-        {items.map((item) => (
-          <li key={item.label}>
-            {item.href ? (
-              <Link
-                href={item.href}
-                className="block rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-muted"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <span className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-foreground-muted">
-                {item.label}
-                <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
-                  Pronto
+        {items.map((item) => {
+          const activo = item.href != null && pathname.startsWith(item.href);
+          return (
+            <li key={item.label}>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  aria-current={activo ? "page" : undefined}
+                  className={`relative block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    activo
+                      ? "bg-brand/10 text-foreground"
+                      : "text-foreground hover:bg-surface-muted"
+                  }`}
+                >
+                  {activo && (
+                    <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-brand" />
+                  )}
+                  {item.label}
+                </Link>
+              ) : (
+                <span className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-foreground-muted">
+                  {item.label}
+                  <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                    Pronto
+                  </span>
                 </span>
-              </span>
-            )}
-          </li>
-        ))}
+              )}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
