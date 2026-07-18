@@ -44,7 +44,7 @@ const tabs = [
   { id: "crypto-spot", label: "Cripto spot" },
   { id: "plazos-fijos", label: "Plazos Fijos" },
   { id: "graficos", label: "Gráficos P&L por divisa" },
-  { id: "importar", label: "Importar" },
+  { id: "importar", label: "Exportar/importar operaciones" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -523,11 +523,12 @@ export default function HistorialPage() {
       )}
       {tab === "plazos-fijos" && <TablaPlazosFijos />}
       {tab === "graficos" && <GraficosPorDivisaSection />}
-      {tab === "importar" && <ImportarPanel />}
-
-      <div className="mt-6">
-        <ExportarPanel trades={trades} plazosFijos={plazosFijos} />
-      </div>
+      {tab === "importar" && (
+        <div className="flex flex-col gap-6">
+          <ExportarPanel trades={trades} plazosFijos={plazosFijos} />
+          <ImportarPanel />
+        </div>
+      )}
     </div>
   );
 }
