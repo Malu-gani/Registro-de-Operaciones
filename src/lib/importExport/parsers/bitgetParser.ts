@@ -3,10 +3,10 @@ import type { CampoImport, IndicesColumnas, ParserImportacion, TablaCruda } from
 import { leerArchivo } from "./baseParser";
 import {
   buscarColumna,
-  limpiarSimbolo,
   parseFecha,
   parseLado,
   parseNumeroLocale,
+  simboloBaseCripto,
 } from "../sanitize";
 
 /**
@@ -76,7 +76,7 @@ function mapear(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseo {
     const lado = parseLado(celdas[idx.lado]);
     const precio = parseNumeroLocale(celdas[idx.precio]);
     const cantidad = parseNumeroLocale(celdas[idx.cantidad]);
-    const activo = limpiarSimbolo(celdas[idx.par]).replace(/[/\-_]/g, "");
+    const activo = simboloBaseCripto(celdas[idx.par]);
 
     if (!fecha) return void errores.push({ fila: nroFila, motivo: "Fecha inválida o vacía." });
     if (!lado) return void errores.push({ fila: nroFila, motivo: "Lado no reconocido (se esperaba Buy/Sell u Open/Close)." });
