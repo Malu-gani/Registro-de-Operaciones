@@ -1,4 +1,5 @@
 import SeccionCuenta from "@/components/ajustes/SeccionCuenta";
+import SeccionTema from "@/components/ajustes/SeccionTema";
 import SeccionAjustes from "@/components/ajustes/SeccionAjustes";
 
 export default function AjustesPage() {
@@ -8,12 +9,7 @@ export default function AjustesPage() {
 
       <SeccionCuenta />
 
-      <SeccionAjustes
-        titulo="Tema"
-        descripcion="Claro, oscuro o automático según tu sistema."
-      >
-        <p className="text-xs text-foreground-muted">En construcción.</p>
-      </SeccionAjustes>
+      <SeccionTema />
 
       <SeccionAjustes
         titulo="Semáforo de riesgo"

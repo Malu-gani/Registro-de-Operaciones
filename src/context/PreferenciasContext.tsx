@@ -9,6 +9,7 @@ import {
   type Tema,
 } from "@/lib/preferenciasApi";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { aplicarTema } from "@/lib/tema";
 import {
   UMBRALES_RIESGO_DEFAULT,
   type UmbralesRiesgo,
@@ -61,6 +62,17 @@ export function PreferenciasProvider({ children }: { children: React.ReactNode }
       cancelado = true;
     };
   }, []);
+
+  // Aplica el tema al DOM cada vez que cambia la preferencia y, si está en
+  // 'auto', re-aplica cuando el sistema operativo cambia de claro a oscuro.
+  useEffect(() => {
+    aplicarTema(prefs.tema);
+    if (prefs.tema !== "auto") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onCambio = () => aplicarTema("auto");
+    mq.addEventListener("change", onCambio);
+    return () => mq.removeEventListener("change", onCambio);
+  }, [prefs.tema]);
 
   /** Persiste un cambio parcial de forma optimista, revirtiendo si falla. */
   const persistir = async (siguiente: Preferencias) => {
