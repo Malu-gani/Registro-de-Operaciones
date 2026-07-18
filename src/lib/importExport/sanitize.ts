@@ -124,6 +124,37 @@ export function limpiarSimbolo(valor: string | undefined | null): string {
   return valor.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+/**
+ * Monedas de cotización frecuentes en pares cripto, de más larga a más corta
+ * (importa el orden: "USDT" debe probarse antes que "USD").
+ */
+const COTIZACIONES_CRIPTO = ["USDT", "USDC", "BUSD", "TUSD", "FDUSD", "USD", "DAI", "BTC", "ETH"];
+
+/**
+ * Extrae el símbolo base de un par cripto, descartando la moneda de cotización:
+ *  - con separador ("BTC/USDT", "BTC-USDT", "BTC_USDT") -> "BTC"
+ *  - pegado ("BTCUSDT", "SOLUSDT")                       -> "BTC", "SOL"
+ * Así el activo importado queda igual que los cripto nativos de la app (símbolo
+ * base, ej. "BTC"), que es lo que esperan las búsquedas de precio en vivo.
+ */
+export function simboloBaseCripto(par: string | undefined | null): string {
+  const limpio = limpiarSimbolo(par);
+  if (!limpio) return "";
+
+  // Con separador explícito, la base es lo anterior al primer separador.
+  const partes = limpio.split(/[/\-_]/).filter(Boolean);
+  if (partes.length > 1) return partes[0];
+
+  // Sin separador: quitar un sufijo de cotización conocido (si sobra algo).
+  const token = partes[0] ?? limpio;
+  for (const cotizacion of COTIZACIONES_CRIPTO) {
+    if (token.length > cotizacion.length && token.endsWith(cotizacion)) {
+      return token.slice(0, -cotizacion.length);
+    }
+  }
+  return token;
+}
+
 /** Normaliza el lado de la ejecución a "compra" | "venta". Null si no reconoce. */
 export function parseLado(valor: string | undefined | null): "compra" | "venta" | null {
   if (!valor) return null;

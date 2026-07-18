@@ -112,10 +112,13 @@ export default function ImportarPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-xl border border-risk-yellow-border bg-risk-yellow-bg p-4 text-sm text-risk-yellow">
-        Los parsers de IOL y Bitget son provisionales: si alguna columna no se
-        detecta sola, asignala a mano abajo. Las operaciones se reconstruyen con
-        emparejado FIFO y, al confirmar, se dan de alta ajustando los saldos del
-        portafolio elegido.
+        La lectura automática de las columnas de IOL y Bitget todavía está en
+        pruebas: si el sistema no reconoce sola alguna columna, asignala a mano
+        en la sección de abajo. Con esos datos armamos cada operación
+        emparejando tus compras y ventas por orden de antigüedad (método FIFO:
+        la primera compra se cierra con la primera venta, y así sucesivamente).
+        Al confirmar, las operaciones se dan de alta y se ajustan los saldos del
+        portafolio que elijas.
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -135,13 +138,24 @@ export default function ImportarPanel() {
 
         <div className="flex flex-col gap-1">
           <label className={labelClasses} htmlFor="archivo">Archivo exportado (CSV o Excel)</label>
-          <input
-            id="archivo"
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={onArchivo}
-            className={`${inputClasses} file:mr-3 file:rounded file:border-0 file:bg-surface-muted file:px-2 file:py-1 file:text-xs file:text-foreground`}
-          />
+          <div className={`${inputClasses} flex items-center gap-3`}>
+            <label
+              htmlFor="archivo"
+              className="cursor-pointer rounded border-0 bg-surface-muted px-2 py-1 text-xs text-foreground hover:opacity-90"
+            >
+              Seleccionar archivo
+            </label>
+            <span className="truncate text-xs text-foreground-muted">
+              {nombreArchivo || "Sin archivo seleccionado"}
+            </span>
+            <input
+              id="archivo"
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={onArchivo}
+              className="hidden"
+            />
+          </div>
         </div>
       </div>
 
@@ -361,16 +375,30 @@ function ResultadoImport({ resultado }: { resultado: ResultadoImportacion }) {
   const faltantes = faltantePorCuenta(resultado.fallidas);
   const cuentasFaltantes = Object.entries(faltantes) as [CuentaId, number][];
 
+  const { importadas } = resultado;
+  const seCargoAlgo = importadas > 0;
+  const mensajeResultado = seCargoAlgo
+    ? `${importadas} ${importadas === 1 ? "operación cargada" : "operaciones cargadas"} correctamente.`
+    : "No se pudo cargar ninguna operación.";
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-risk-green-border bg-risk-green-bg p-4 text-sm text-risk-green">
-        {resultado.importadas} operaciones importadas correctamente.
+      <div
+        className={
+          seCargoAlgo
+            ? "rounded-xl border border-risk-green-border bg-risk-green-bg p-4 text-sm text-risk-green"
+            : "rounded-xl border border-border bg-surface p-4 text-sm text-foreground-muted"
+        }
+      >
+        {mensajeResultado}
       </div>
 
       {resultado.fallidas.length > 0 && (
         <div className="rounded-xl border border-risk-red-border bg-risk-red-bg p-4">
           <p className="mb-2 text-sm font-medium text-risk-red">
-            {resultado.fallidas.length} operaciones no se importaron
+            {resultado.fallidas.length === 1
+              ? "1 operación no se pudo cargar"
+              : `${resultado.fallidas.length} operaciones no se pudieron cargar`}
           </p>
           {cuentasFaltantes.length > 0 && (
             <div className="mb-3 text-xs text-risk-red">

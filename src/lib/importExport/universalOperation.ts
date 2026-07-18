@@ -21,7 +21,7 @@ export type LadoMovimiento = "compra" | "venta";
 export interface MovimientoImportado {
   /** Fecha normalizada a YYYY-MM-DD. */
   fecha: string;
-  /** Símbolo/activo normalizado (ej. "BTCUSDT", "AAPL"). */
+  /** Símbolo/activo normalizado (ej. "BTC", "AAPL"). */
   activo: string;
   tipoActivo: TipoActivo;
   subTipoActivo?: SubTipoAccion | SubTipoCrypto;
