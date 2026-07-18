@@ -14,33 +14,52 @@ interface UmbralRiesgo {
 }
 
 /**
- * Matriz de umbrales del semáforo de riesgo, un juego de rangos por clase
- * de activo (cada uno mide el % de riesgo sobre una base distinta: capital
- * invertido para Acciones/CEDEARs y Cripto Spot, valor nocional para
- * Futuros — ver `analizarConTamañoPosicion`). Los rangos son
- * `(límite anterior, límite actual]`, o sea el límite superior de cada
- * nivel es inclusive; el primer nivel además incluye el 0%.
+ * Cortes editables del semáforo por clase de activo: el % máximo (inclusive)
+ * de cada nivel hasta `alto`. El nivel `critico` es implícito (todo lo que
+ * supera `alto`), por eso no se guarda. Es la forma que persiste la tabla
+ * `preferencias_usuario.umbrales_riesgo` y la que edita la pestaña Ajustes.
  */
-const MATRIZ_RIESGO: Record<ClaseActivo, UmbralRiesgo[]> = {
-  acciones: [
-    { limite: 3, nivel: "bajo" },
-    { limite: 8, nivel: "medio" },
-    { limite: 15, nivel: "alto" },
-    { limite: 100, nivel: "critico" },
-  ],
-  cripto_spot: [
-    { limite: 5, nivel: "bajo" },
-    { limite: 15, nivel: "medio" },
-    { limite: 25, nivel: "alto" },
-    { limite: 100, nivel: "critico" },
-  ],
-  futuros: [
-    { limite: 1, nivel: "bajo" },
-    { limite: 3, nivel: "medio" },
-    { limite: 10, nivel: "alto" },
-    { limite: 100, nivel: "critico" },
-  ],
+export interface CortesRiesgo {
+  bajo: number;
+  medio: number;
+  alto: number;
+}
+
+/** Cortes de las tres clases de activo (única fuente de verdad de la forma). */
+export type UmbralesRiesgo = Record<ClaseActivo, CortesRiesgo>;
+
+/**
+ * Valores por defecto del semáforo. Cada clase mide el % de riesgo sobre una
+ * base distinta: capital invertido para Acciones/CEDEARs y Cripto Spot, valor
+ * nocional para Futuros — ver `analizarConTamañoPosicion`. Si el usuario no
+ * personalizó sus umbrales, la app usa estos.
+ */
+export const UMBRALES_RIESGO_DEFAULT: UmbralesRiesgo = {
+  acciones: { bajo: 3, medio: 8, alto: 15 },
+  cripto_spot: { bajo: 5, medio: 15, alto: 25 },
+  futuros: { bajo: 1, medio: 3, alto: 10 },
 };
+
+/**
+ * Arma la matriz de rangos a partir de los cortes editables. Los rangos son
+ * `(límite anterior, límite actual]`, o sea el límite superior de cada nivel
+ * es inclusive; el primer nivel además incluye el 0%. `critico` cierra en 100.
+ */
+export function construirMatrizRiesgo(
+  umbrales: UmbralesRiesgo
+): Record<ClaseActivo, UmbralRiesgo[]> {
+  const porClase = (c: CortesRiesgo): UmbralRiesgo[] => [
+    { limite: c.bajo, nivel: "bajo" },
+    { limite: c.medio, nivel: "medio" },
+    { limite: c.alto, nivel: "alto" },
+    { limite: 100, nivel: "critico" },
+  ];
+  return {
+    acciones: porClase(umbrales.acciones),
+    cripto_spot: porClase(umbrales.cripto_spot),
+    futuros: porClase(umbrales.futuros),
+  };
+}
 
 /**
  * Determina el nivel de riesgo (semáforo) de un % de riesgo según la clase
@@ -48,13 +67,17 @@ const MATRIZ_RIESGO: Record<ClaseActivo, UmbralRiesgo[]> = {
  * en el límite (ej. 3.00% en Acciones) caiga en el nivel de abajo, y
  * cualquier valor apenas mayor (3.01%) ya caiga en el de arriba — sin
  * puntos ciegos ni superposición entre rangos.
+ *
+ * `umbrales` permite pasar los cortes personalizados del usuario; si se omite,
+ * usa los valores por defecto (comportamiento histórico).
  */
 export function getRiskLevel(
   porcentaje: number,
-  claseActivo: ClaseActivo
+  claseActivo: ClaseActivo,
+  umbrales: UmbralesRiesgo = UMBRALES_RIESGO_DEFAULT
 ): NivelRiesgo {
-  const umbrales = MATRIZ_RIESGO[claseActivo];
-  for (const umbral of umbrales) {
+  const matriz = construirMatrizRiesgo(umbrales);
+  for (const umbral of matriz[claseActivo]) {
     if (porcentaje <= umbral.limite) {
       return umbral.nivel;
     }
