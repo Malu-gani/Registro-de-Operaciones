@@ -461,25 +461,16 @@ function GraficosPorDivisaSection() {
   );
 }
 
-function CabeceraHistorial() {
-  const { trades } = useTrades();
-  const { plazosFijos } = usePlazosFijos();
-  return (
-    <div className="mb-4 flex flex-col gap-3">
-      <h1 className="text-lg font-semibold text-foreground">
-        Historial de operaciones
-      </h1>
-      <ExportarPanel trades={trades} plazosFijos={plazosFijos} />
-    </div>
-  );
-}
-
 export default function HistorialPage() {
   const [tab, setTab] = useState<TabId>("acciones");
+  const { trades } = useTrades();
+  const { plazosFijos } = usePlazosFijos();
 
   return (
     <div className="mx-auto max-w-6xl">
-      <CabeceraHistorial />
+      <h1 className="mb-4 text-lg font-semibold text-foreground">
+        Historial de operaciones
+      </h1>
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {tabs.map((t) => (
@@ -533,6 +524,10 @@ export default function HistorialPage() {
       {tab === "plazos-fijos" && <TablaPlazosFijos />}
       {tab === "graficos" && <GraficosPorDivisaSection />}
       {tab === "importar" && <ImportarPanel />}
+
+      <div className="mt-6">
+        <ExportarPanel trades={trades} plazosFijos={plazosFijos} />
+      </div>
     </div>
   );
 }
