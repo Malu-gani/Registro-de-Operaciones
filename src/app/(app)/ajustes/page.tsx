@@ -1,6 +1,7 @@
 import SeccionCuenta from "@/components/ajustes/SeccionCuenta";
 import SeccionTema from "@/components/ajustes/SeccionTema";
 import SeccionUmbrales from "@/components/ajustes/SeccionUmbrales";
+import SeccionBorrarCuenta from "@/components/ajustes/SeccionBorrarCuenta";
 
 export default function AjustesPage() {
   return (
@@ -12,6 +13,8 @@ export default function AjustesPage() {
       <SeccionTema />
 
       <SeccionUmbrales />
+
+      <SeccionBorrarCuenta />
     </div>
   );
 }
