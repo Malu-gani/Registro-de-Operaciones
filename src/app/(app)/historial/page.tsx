@@ -9,7 +9,7 @@ import { useFiltroFechaPreset, SelectorFechaPreset } from "@/components/FiltroFe
 import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 import EquityCurve from "@/components/EquityCurve";
-import ExportarBotones from "@/components/historial/ExportarBotones";
+import ExportarPanel from "@/components/historial/ExportarPanel";
 import ImportarPanel from "@/components/historial/ImportarPanel";
 
 const formatoUSD = new Intl.NumberFormat("es-AR", {
@@ -463,12 +463,13 @@ function GraficosPorDivisaSection() {
 
 function CabeceraHistorial() {
   const { trades } = useTrades();
+  const { plazosFijos } = usePlazosFijos();
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 flex flex-col gap-3">
       <h1 className="text-lg font-semibold text-foreground">
         Historial de operaciones
       </h1>
-      <ExportarBotones trades={trades} />
+      <ExportarPanel trades={trades} plazosFijos={plazosFijos} />
     </div>
   );
 }

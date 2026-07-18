@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { CuentaId } from "@/types/trading";
-import type { PlataformaImport } from "@/lib/importExport/universalOperation";
+import { useEffect, useMemo, useState } from "react";
+import type { CuentaId, Trade } from "@/types/trading";
+import type { ErrorFila, PlataformaImport } from "@/lib/importExport/universalOperation";
 import type { IndicesColumnas, TablaCruda } from "@/lib/importExport/parsers/baseParser";
 import { leerArchivo } from "@/lib/importExport/parsers/baseParser";
 import { PARSERS, PLATAFORMAS_IMPORT } from "@/lib/importExport/parsers";
-import { reconstruirFIFO } from "@/lib/importExport/fifoReconstruction";
+import { reconstruirFIFO, type OperacionReconstruida } from "@/lib/importExport/fifoReconstruction";
+import { claveOperacion, marcarDuplicados } from "@/lib/importExport/dedup";
+import { fetchTrades } from "@/lib/tradesApi";
 import {
   faltantePorCuenta,
   importarOperaciones,
@@ -26,6 +28,9 @@ const CUENTA_LABEL: Record<CuentaId, string> = {
   usdt_spot: "USDT Spot",
   usdt_futuros: "USDT Futuros",
 };
+
+/** Referencia estable para "sin operaciones existentes" (evita recomputar memos). */
+const SIN_EXISTENTES: Trade[] = [];
 
 /**
  * Panel de importación de historial (Fase B — completo). Flujo:
@@ -50,15 +55,84 @@ export default function ImportarPanel() {
   const [resultadoImport, setResultadoImport] = useState<ResultadoImportacion | null>(null);
 
   const parser = PARSERS[plataforma];
+  const sinFifo = parser?.sinFifo ?? false;
 
-  const resultado = useMemo(
-    () => (tabla && parser ? parser.mapear(tabla, indices) : null),
-    [tabla, parser, indices]
+  // Reconstrucción unificada: los parsers de ejecuciones sueltas (iol/bitget)
+  // pasan por FIFO; el formato propio ya trae operaciones redondas.
+  const parseo = useMemo<{
+    operaciones: OperacionReconstruida[];
+    errores: ErrorFila[];
+    leidos: number;
+    ignoradas: number;
+  }>(() => {
+    if (!tabla || !parser) return { operaciones: [], errores: [], leidos: 0, ignoradas: 0 };
+    if (parser.sinFifo && parser.mapearOperaciones) {
+      const r = parser.mapearOperaciones(tabla, indices);
+      return {
+        operaciones: r.operaciones,
+        errores: r.errores,
+        leidos: r.operaciones.length,
+        ignoradas: r.ignoradas ?? 0,
+      };
+    }
+    const r = parser.mapear(tabla, indices);
+    return {
+      operaciones: reconstruirFIFO(r.movimientos),
+      errores: r.errores,
+      leidos: r.movimientos.length,
+      ignoradas: 0,
+    };
+  }, [tabla, parser, indices]);
+
+  const operaciones = parseo.operaciones;
+
+  // Operaciones ya cargadas en el portafolio destino, para detectar duplicados.
+  const [existentes, setExistentes] = useState<Trade[]>([]);
+  useEffect(() => {
+    if (!portafolioId) return;
+    let cancelado = false;
+    fetchTrades(portafolioId)
+      .then((t) => {
+        if (!cancelado) setExistentes(t);
+      })
+      .catch(() => {
+        if (!cancelado) setExistentes([]);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [portafolioId]);
+
+  // Sin destino elegido no hay contra qué comparar (se ignora lo que haya quedado).
+  const existentesEfectivos = portafolioId ? existentes : SIN_EXISTENTES;
+  const duplicados = useMemo(
+    () => marcarDuplicados(operaciones, existentesEfectivos),
+    [operaciones, existentesEfectivos]
   );
-  const operaciones = useMemo(
-    () => (resultado ? reconstruirFIFO(resultado.movimientos) : []),
-    [resultado]
-  );
+
+  // Selección de qué importar: por defecto, todas menos las duplicadas. Es estado
+  // derivado que además el usuario puede editar (tildar/destildar), así que se
+  // resetea durante el render cuando cambia su firma (operaciones + marcado), el
+  // patrón recomendado por React en vez de un useEffect con setState.
+  const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
+  const [firmaSeleccion, setFirmaSeleccion] = useState("");
+  const firma = operaciones.map(claveOperacion).join(";") + "|" + duplicados.join(",");
+  if (firma !== firmaSeleccion) {
+    setFirmaSeleccion(firma);
+    setSeleccion(new Set(operaciones.map((_, i) => i).filter((i) => !duplicados[i])));
+  }
+
+  const toggleSeleccion = (i: number) =>
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  const toggleTodo = () =>
+    setSeleccion((prev) =>
+      prev.size === operaciones.length ? new Set() : new Set(operaciones.map((_, i) => i))
+    );
 
   const cambiarPlataforma = (p: PlataformaImport) => {
     setPlataforma(p);
@@ -93,13 +167,17 @@ export default function ImportarPanel() {
     setIndices((prev) => ({ ...prev, [campoId]: valor }));
 
   const confirmarImport = async () => {
-    if (!portafolioId || operaciones.length === 0) return;
+    const aImportar = operaciones.filter((_, i) => seleccion.has(i));
+    if (!portafolioId || aImportar.length === 0) return;
     setImportando(true);
     setResultadoImport(null);
     try {
-      const res = await importarOperaciones(operaciones, portafolioId);
+      const res = await importarOperaciones(aImportar, portafolioId);
       setResultadoImport(res);
       await Promise.all([recargar(), refrescar()]);
+      // Refrescar los existentes del destino para que un segundo intento marque
+      // como duplicadas las recién cargadas.
+      fetchTrades(portafolioId).then(setExistentes).catch(() => {});
     } catch (err) {
       setErrorArchivo(err instanceof Error ? err.message : "Error al importar.");
     } finally {
@@ -112,13 +190,25 @@ export default function ImportarPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-xl border border-risk-yellow-border bg-risk-yellow-bg p-4 text-sm text-risk-yellow">
-        La lectura automática de las columnas de IOL y Bitget todavía está en
-        pruebas: si el sistema no reconoce sola alguna columna, asignala a mano
-        en la sección de abajo. Con esos datos armamos cada operación
-        emparejando tus compras y ventas por orden de antigüedad (método FIFO:
-        la primera compra se cierra con la primera venta, y así sucesivamente).
-        Al confirmar, las operaciones se dan de alta y se ajustan los saldos del
-        portafolio que elijas.
+        {sinFifo ? (
+          <>
+            Estás re-importando el formato propio del diario: cada fila ya es una
+            operación completa (abierta o cerrada), así que no se reconstruye por
+            FIFO, se carga tal cual. Las filas de plazos fijos u otras que no sean
+            operaciones se ignoran. Al confirmar, las operaciones se dan de alta y
+            se ajustan los saldos del portafolio que elijas.
+          </>
+        ) : (
+          <>
+            La lectura automática de las columnas de IOL y Bitget todavía está en
+            pruebas: si el sistema no reconoce sola alguna columna, asignala a mano
+            en la sección de abajo. Con esos datos armamos cada operación
+            emparejando tus compras y ventas por orden de antigüedad (método FIFO:
+            la primera compra se cierra con la primera venta, y así sucesivamente).
+            Al confirmar, las operaciones se dan de alta y se ajustan los saldos del
+            portafolio que elijas.
+          </>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -175,11 +265,17 @@ export default function ImportarPanel() {
         />
       )}
 
-      {resultado && (
+      {tabla && parser && (
         <PreviewOperaciones
           operaciones={operaciones}
-          errores={resultado.errores}
-          movimientosLeidos={resultado.movimientos.length}
+          errores={parseo.errores}
+          leidos={parseo.leidos}
+          ignoradas={parseo.ignoradas}
+          sinFifo={sinFifo}
+          duplicados={duplicados}
+          seleccion={seleccion}
+          onToggle={toggleSeleccion}
+          onToggleTodo={toggleTodo}
         />
       )}
 
@@ -188,7 +284,7 @@ export default function ImportarPanel() {
           portafolios={portafoliosReales}
           portafolioId={portafolioId}
           setPortafolioId={setPortafolioId}
-          cantidad={operaciones.length}
+          cantidad={seleccion.size}
           importando={importando}
           onConfirmar={confirmarImport}
         />
@@ -245,22 +341,48 @@ function MapeoColumnas({
 function PreviewOperaciones({
   operaciones,
   errores,
-  movimientosLeidos,
+  leidos,
+  ignoradas = 0,
+  sinFifo = false,
+  duplicados,
+  seleccion,
+  onToggle,
+  onToggleTodo,
 }: {
-  operaciones: ReturnType<typeof reconstruirFIFO>;
+  operaciones: OperacionReconstruida[];
   errores: { fila: number; motivo: string }[];
-  movimientosLeidos: number;
+  leidos: number;
+  ignoradas?: number;
+  sinFifo?: boolean;
+  duplicados: boolean[];
+  seleccion: Set<number>;
+  onToggle: (i: number) => void;
+  onToggleTodo: () => void;
 }) {
   const cerradas = operaciones.filter((o) => o.estado === "cerrada").length;
   const abiertas = operaciones.length - cerradas;
+  const nDuplicados = duplicados.filter(Boolean).length;
+  const nNuevas = operaciones.length - nDuplicados;
+  const todasSeleccionadas =
+    operaciones.length > 0 && seleccion.size === operaciones.length;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-foreground-muted">{movimientosLeidos} ejecuciones leídas</span>
+        <span className="text-foreground-muted">
+          {sinFifo ? `${leidos} operaciones leídas` : `${leidos} ejecuciones leídas`}
+        </span>
         <span className="font-medium text-foreground">
           {operaciones.length} operaciones ({cerradas} cerradas, {abiertas} abiertas)
         </span>
+        {nDuplicados > 0 && (
+          <span className="text-risk-yellow">
+            {nNuevas} nuevas, {nDuplicados} duplicadas (destildadas)
+          </span>
+        )}
+        {ignoradas > 0 && (
+          <span className="text-foreground-muted">{ignoradas} filas ignoradas</span>
+        )}
         {errores.length > 0 && (
           <span className="text-risk-red">{errores.length} filas con problemas</span>
         )}
@@ -271,6 +393,15 @@ function PreviewOperaciones({
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-foreground-muted">
+                <th className="px-3 py-2 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={todasSeleccionadas}
+                    onChange={onToggleTodo}
+                    className="h-4 w-4 rounded border-border"
+                    title="Seleccionar todo / ninguno"
+                  />
+                </th>
                 <th className="px-3 py-2 font-medium">Activo</th>
                 <th className="px-3 py-2 font-medium">Tipo</th>
                 <th className="px-3 py-2 font-medium">Op.</th>
@@ -284,7 +415,22 @@ function PreviewOperaciones({
             <tbody>
               {operaciones.map((o, i) => (
                 <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-medium text-foreground">{o.activo}</td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={seleccion.has(i)}
+                      onChange={() => onToggle(i)}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                  </td>
+                  <td className="px-3 py-2 font-medium text-foreground">
+                    {o.activo}
+                    {duplicados[i] && (
+                      <span className="ml-2 rounded border border-risk-yellow-border bg-risk-yellow-bg px-1.5 py-0.5 text-[10px] font-medium text-risk-yellow">
+                        Duplicado
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-foreground-muted">
                     {o.tipoActivo}{o.subTipoActivo ? ` · ${o.subTipoActivo}` : ""}
                     {o.apalancamiento ? ` · ${o.apalancamiento}x` : ""}
@@ -362,10 +508,14 @@ function ConfirmarImport({
       <button
         type="button"
         onClick={onConfirmar}
-        disabled={!portafolioId || importando}
+        disabled={!portafolioId || importando || cantidad === 0}
         className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
       >
-        {importando ? "Importando..." : `Importar ${cantidad} operaciones`}
+        {importando
+          ? "Importando..."
+          : cantidad === 0
+            ? "Seleccioná operaciones"
+            : `Importar ${cantidad} ${cantidad === 1 ? "operación" : "operaciones"}`}
       </button>
     </div>
   );

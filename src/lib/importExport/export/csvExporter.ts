@@ -1,6 +1,10 @@
-import type { Trade } from "@/types/trading";
-import { EXPORT_HEADERS, tradeToRow, type ExportRow } from "./tradeToRow";
+import type { PlazoFijo, Trade } from "@/types/trading";
+import { EXPORT_HEADERS, tradeToRow } from "./tradeToRow";
+import { PLAZO_FIJO_HEADERS, plazoFijoToRow } from "./plazoFijoToRow";
 import { descargarBlob, nombreConFecha } from "./descargar";
+
+/** Una fila genérica: valores indexados por nombre de columna. */
+type FilaExport = Record<string, string | number>;
 
 /**
  * Escapa un valor de celda para CSV: si contiene coma, comilla o salto de
@@ -15,29 +19,46 @@ function escaparCampo(valor: string | number): string {
   return texto;
 }
 
-/** Serializa las filas a una cadena CSV con encabezados del formato propio. */
-function filasACsv(filas: ExportRow[]): string {
-  const encabezado = EXPORT_HEADERS.map(escaparCampo).join(",");
+/**
+ * Serializa filas a CSV para un juego de headers arbitrario. Función pura
+ * (sin APIs del navegador): base común de todos los exportadores CSV.
+ */
+export function tablaACsvString(
+  headers: readonly string[],
+  filas: FilaExport[]
+): string {
+  const encabezado = headers.map(escaparCampo).join(",");
   const lineas = filas.map((fila) =>
-    EXPORT_HEADERS.map((h) => escaparCampo(fila[h])).join(",")
+    headers.map((h) => escaparCampo(fila[h] ?? "")).join(",")
   );
   return [encabezado, ...lineas].join("\r\n");
 }
 
-/**
- * Convierte una lista de operaciones a la cadena CSV del formato propio.
- * Función pura (sin APIs del navegador): testeable y reutilizable.
- */
+/** Convierte operaciones a la cadena CSV del formato propio (esquema operaciones). */
 export function tradesACsvString(trades: Trade[]): string {
-  return filasACsv(trades.map(tradeToRow));
+  return tablaACsvString(EXPORT_HEADERS, trades.map(tradeToRow));
+}
+
+/** Convierte plazos fijos a la cadena CSV del formato propio (esquema plazos). */
+export function plazosACsvString(plazos: PlazoFijo[]): string {
+  return tablaACsvString(PLAZO_FIJO_HEADERS, plazos.map(plazoFijoToRow));
 }
 
 /**
- * Exporta las operaciones a un archivo CSV descargable. Antepone un BOM (﻿)
- * para que Excel abra los acentos correctamente.
+ * Descarga una tabla como CSV. Antepone un BOM (﻿) para que Excel abra los
+ * acentos correctamente. Base común para operaciones y plazos.
  */
-export function exportarCSV(trades: Trade[], base = "historial-operaciones"): void {
-  const csv = tradesACsvString(trades);
+export function exportarCSVTabla(
+  headers: readonly string[],
+  filas: FilaExport[],
+  base: string
+): void {
+  const csv = tablaACsvString(headers, filas);
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
   descargarBlob(blob, nombreConFecha(base, "csv"));
+}
+
+/** Exporta las operaciones a un archivo CSV descargable. */
+export function exportarCSV(trades: Trade[], base = "historial-operaciones"): void {
+  exportarCSVTabla(EXPORT_HEADERS, trades.map(tradeToRow), base);
 }

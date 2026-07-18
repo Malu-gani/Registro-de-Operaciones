@@ -1,4 +1,5 @@
-import type { PlataformaImport, ResultadoParseo } from "../universalOperation";
+import type { ErrorFila, PlataformaImport, ResultadoParseo } from "../universalOperation";
+import type { OperacionReconstruida } from "../fifoReconstruction";
 
 /**
  * Capa de Estrategia. Cada plataforma implementa `ParserImportacion`. Se separa
@@ -23,10 +24,29 @@ export interface CampoImport {
 /** Mapa campo lógico -> índice de columna en el archivo (-1 si sin asignar). */
 export type IndicesColumnas = Record<string, number>;
 
+/**
+ * Resultado de un parser que emite operaciones YA reconstruidas (redondas), sin
+ * pasar por FIFO. Es el caso del formato propio: el archivo exportado por el
+ * diario ya trae la operación completa (estado + entrada/salida), no ejecuciones
+ * sueltas. `ignoradas` cuenta filas que no son operaciones (p. ej. plazos fijos)
+ * y se descartan sin marcarlas como error.
+ */
+export interface ResultadoParseoOperaciones {
+  operaciones: OperacionReconstruida[];
+  errores: ErrorFila[];
+  ignoradas?: number;
+}
+
 export interface ParserImportacion {
   plataforma: PlataformaImport;
   /** Campos lógicos que el parser mapea (para la UI de mapeo manual). */
   campos: CampoImport[];
+  /**
+   * true = el parser emite operaciones redondas vía `mapearOperaciones` y NO
+   * deben pasar por FIFO. Los parsers de ejecuciones sueltas (iol/bitget) lo
+   * dejan sin definir.
+   */
+  sinFifo?: boolean;
   /** Detecta automáticamente los índices de columna por alias de encabezado. */
   detectar(headers: string[]): IndicesColumnas;
   /**
@@ -34,6 +54,8 @@ export interface ParserImportacion {
    * usuario), los usa; si no, autodetecta desde los encabezados.
    */
   mapear(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseo;
+  /** Solo parsers con `sinFifo`: mapea la tabla a operaciones ya reconstruidas. */
+  mapearOperaciones?(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseoOperaciones;
   /** Conveniencia: lee el archivo, autodetecta y mapea. */
   parse(file: File): Promise<ResultadoParseo>;
 }
