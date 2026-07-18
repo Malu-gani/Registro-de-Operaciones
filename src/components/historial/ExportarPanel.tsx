@@ -57,6 +57,7 @@ export default function ExportarPanel({
   plazosFijos: PlazoFijo[];
   base?: string;
 }) {
+  const [abierto, setAbierto] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, FilaSeleccion>>(
     seleccionInicial
   );
@@ -117,9 +118,32 @@ export default function ExportarPanel({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
-      <p className="mb-3 text-sm font-medium text-foreground">Exportar historial</p>
+    <div className="rounded-lg border border-border bg-surface">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        aria-expanded={abierto}
+        className="flex w-full items-center justify-between gap-3 p-4 text-left"
+      >
+        <span className="text-sm font-medium text-foreground">Exportar historial</span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-5 w-5 shrink-0 text-foreground-muted transition-transform ${
+            abierto ? "rotate-180" : ""
+          }`}
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
 
+      {!abierto ? null : (
+      <div className="px-4 pb-4">
       <div className="space-y-2">
         {FILAS.map((fila) => {
           const sel = seleccion[fila.id];
@@ -187,6 +211,8 @@ export default function ExportarPanel({
           {exportando ? "Exportando..." : "Exportar"}
         </button>
       </div>
+      </div>
+      )}
     </div>
   );
 }
