@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { inputClasses, labelClasses } from "@/components/formStyles";
+import SeccionAjustes from "./SeccionAjustes";
 
 const supabase = createClient();
 
@@ -78,15 +79,11 @@ export default function SeccionBorrarCuenta() {
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-risk-red-border bg-risk-red-bg p-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold text-risk-red">Eliminar cuenta</h2>
-        <p className="text-xs text-foreground-muted">
-          Borra tu cuenta y todos tus datos (portafolios, operaciones, saldos y
-          movimientos) de forma permanente. Esta acción no se puede deshacer.
-        </p>
-      </div>
-
+    <SeccionAjustes
+      titulo="Eliminar cuenta"
+      descripcion="Borra tu cuenta y todos tus datos (portafolios, operaciones, saldos y movimientos) de forma permanente. Esta acción no se puede deshacer."
+      tono="peligro"
+    >
       <p className="text-xs text-foreground-muted">
         Antes de continuar, podés{" "}
         <Link href="/historial" className="text-brand underline">
@@ -163,6 +160,6 @@ export default function SeccionBorrarCuenta() {
           </div>
         </div>
       )}
-    </section>
+    </SeccionAjustes>
   );
 }

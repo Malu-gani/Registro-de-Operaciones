@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePreferencias } from "@/context/PreferenciasContext";
 import {
+  UMBRALES_RIESGO_DEFAULT,
   type ClaseActivo,
   type CortesRiesgo,
   type UmbralesRiesgo,
@@ -99,6 +100,7 @@ export default function SeccionUmbrales() {
 
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  const [confirmandoReset, setConfirmandoReset] = useState(false);
 
   const setCampo = (clase: ClaseActivo, nivel: Nivel, valor: string) => {
     setBorrador((prev) => ({ ...prev, [clase]: { ...prev[clase], [nivel]: valor } }));
@@ -127,6 +129,7 @@ export default function SeccionUmbrales() {
     setGuardando(true);
     try {
       await restaurarUmbrales();
+      setConfirmandoReset(false);
       setEstado({ tipo: "ok", texto: "Se restauraron los valores por defecto." });
     } catch {
       setEstado({ tipo: "error", texto: "No se pudo restaurar. Reintentá." });
@@ -145,7 +148,7 @@ export default function SeccionUmbrales() {
           <div key={clase.id} className="rounded-lg border border-border p-4">
             <p className="text-sm font-medium text-foreground">{clase.label}</p>
             <p className="mb-3 text-xs text-foreground-muted">{clase.ayuda}</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {NIVELES.map((nivel) => (
                 <label key={nivel} className="flex flex-col gap-1">
                   <span className={`${labelClasses} capitalize`}>{nivel} hasta %</span>
@@ -160,6 +163,15 @@ export default function SeccionUmbrales() {
                   />
                 </label>
               ))}
+              <div className="flex flex-col gap-1">
+                <span className={labelClasses}>Crítico</span>
+                <div
+                  className={`${inputClasses} flex items-center bg-surface-muted text-foreground-muted`}
+                  title="Todo lo que supere el corte Alto se considera Crítico."
+                >
+                  Más de {borrador[clase.id].alto || "—"}%
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -180,17 +192,74 @@ export default function SeccionUmbrales() {
         >
           {guardando ? "Guardando..." : "Guardar umbrales"}
         </button>
-        {umbralesPersonalizados && (
-          <button
-            type="button"
-            onClick={restaurar}
-            disabled={guardando || loading}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
-          >
-            Restaurar valores por defecto
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setEstado(null);
+            setConfirmandoReset(true);
+          }}
+          disabled={guardando || loading || !umbralesPersonalizados}
+          title={
+            umbralesPersonalizados
+              ? undefined
+              : "Ya estás usando los valores por defecto."
+          }
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
+        >
+          Restaurar valores por defecto
+        </button>
       </div>
+
+      {confirmandoReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
+            <h3 className="text-sm font-semibold text-foreground">
+              Restaurar valores por defecto
+            </h3>
+            <p className="mt-2 text-xs text-foreground-muted">
+              Se van a reemplazar tus umbrales personalizados por estos valores.
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {CLASES.map((clase) => {
+                const d = UMBRALES_RIESGO_DEFAULT[clase.id];
+                return (
+                  <div
+                    key={clase.id}
+                    className="rounded-lg border border-border p-3 text-xs"
+                  >
+                    <p className="font-medium text-foreground">{clase.label}</p>
+                    <p className="mt-1 text-foreground-muted">
+                      Bajo {d.bajo}% · Medio {d.medio}% · Alto {d.alto}% · Crítico
+                      &gt;{d.alto}%
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmandoReset(false)}
+                disabled={guardando}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={restaurar}
+                disabled={guardando}
+                className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
+              >
+                {guardando ? "Restaurando..." : "Restaurar por defecto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SeccionAjustes>
   );
 }
