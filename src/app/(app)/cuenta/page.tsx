@@ -318,7 +318,7 @@ export default function CuentaPage() {
     irAPagina,
   } = useListaPaginada(movimientosFiltrados, {
     inicial: 5,
-    tamanoPagina: 15,
+    tamanoPagina: 10,
     conMinimizar: true,
   });
 

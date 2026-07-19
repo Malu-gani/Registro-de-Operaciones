@@ -73,12 +73,14 @@ function TablaOperacionesCerradas({
     visibles,
     totalCount,
     mostrarVerMas,
+    mostrarMinimizar,
     mostrarPaginador,
     pagina,
     totalPaginas,
     verMas,
+    colapsar,
     irAPagina,
-  } = useListaPaginada(ordenadas);
+  } = useListaPaginada(ordenadas, { conMinimizar: true });
 
   if (error) {
     return (
@@ -236,10 +238,12 @@ function TablaOperacionesCerradas({
         visiblesCount={visibles.length}
         totalCount={totalCount}
         mostrarVerMas={mostrarVerMas}
+        mostrarMinimizar={mostrarMinimizar}
         mostrarPaginador={mostrarPaginador}
         pagina={pagina}
         totalPaginas={totalPaginas}
         verMas={verMas}
+        colapsar={colapsar}
         irAPagina={irAPagina}
       />
     </div>
@@ -259,12 +263,14 @@ function TablaPlazosFijos() {
     visibles,
     totalCount,
     mostrarVerMas,
+    mostrarMinimizar,
     mostrarPaginador,
     pagina,
     totalPaginas,
     verMas,
+    colapsar,
     irAPagina,
-  } = useListaPaginada(vencidos);
+  } = useListaPaginada(vencidos, { conMinimizar: true });
 
   const liquidar = async (id: string) => {
     setLiquidandoId(id);
@@ -357,10 +363,12 @@ function TablaPlazosFijos() {
         visiblesCount={visibles.length}
         totalCount={totalCount}
         mostrarVerMas={mostrarVerMas}
+        mostrarMinimizar={mostrarMinimizar}
         mostrarPaginador={mostrarPaginador}
         pagina={pagina}
         totalPaginas={totalPaginas}
         verMas={verMas}
+        colapsar={colapsar}
         irAPagina={irAPagina}
       />
     </div>
