@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Diario de Trading",
+  title: "Gestor de Portfolio y Operaciones",
   description: "Seguimiento de operaciones con gestión de riesgo automática",
 };
 

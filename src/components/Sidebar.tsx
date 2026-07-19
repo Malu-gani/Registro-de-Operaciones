@@ -2,61 +2,73 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ComponentType } from "react";
+import SidebarTemaToggle from "@/components/SidebarTemaToggle";
+import {
+  IconoCuenta,
+  IconoNuevaOperacion,
+  IconoPosiciones,
+  IconoResumen,
+  IconoHistorial,
+  IconoAlertas,
+  IconoAjustes,
+} from "@/components/navIcons";
 
-const items = [
-  { label: "Cuenta", href: "/cuenta" },
-  { label: "Nueva Operación", href: "/nueva-operacion" },
-  { label: "Posiciones Abiertas", href: "/posiciones-abiertas" },
-  { label: "Resumen", href: "/dashboard" },
-  { label: "Historial de operaciones", href: "/historial" },
-  { label: "Alertas", href: null },
-  { label: "Ajustes", href: "/ajustes" },
+type Item = {
+  label: string;
+  href: string | null;
+  Icono: ComponentType<{ className?: string }>;
+};
+
+const items: Item[] = [
+  { label: "Cuenta", href: "/cuenta", Icono: IconoCuenta },
+  { label: "Nueva Operación", href: "/nueva-operacion", Icono: IconoNuevaOperacion },
+  { label: "Posiciones Abiertas", href: "/posiciones-abiertas", Icono: IconoPosiciones },
+  { label: "Resumen", href: "/dashboard", Icono: IconoResumen },
+  { label: "Historial de operaciones", href: "/historial", Icono: IconoHistorial },
+  { label: "Alertas", href: null, Icono: IconoAlertas },
+  { label: "Ajustes", href: "/ajustes", Icono: IconoAjustes },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden w-56 shrink-0 border-r border-border bg-surface px-3 py-4 sm:block">
-      <ul className="flex flex-col gap-1">
-        {items.map((item) => {
-          const activo = item.href != null && pathname.startsWith(item.href);
+    <nav className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface px-3 py-4 sm:flex">
+      <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground-muted">
+        Menú
+      </p>
+
+      <ul className="flex flex-1 flex-col gap-1">
+        {items.map(({ label, href, Icono }) => {
+          const activo = href != null && pathname.startsWith(href);
           return (
-            <li key={item.label}>
-              {item.href ? (
+            <li key={label}>
+              {href ? (
                 <Link
-                  href={item.href}
+                  href={href}
                   aria-current={activo ? "page" : undefined}
-                  className={`relative block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                     activo
-                      ? "bg-brand/10 text-foreground"
+                      ? "nav-activo"
                       : "text-foreground hover:bg-surface-muted"
                   }`}
                 >
-                  {/*
-                    La barrita del ítem activo se deja SIEMPRE en el DOM y solo
-                    cambia de color con la clase. Si se renderizara condicional
-                    ({activo && <span/>}), al navegar React tendría que
-                    insertarla/quitarla justo al lado del texto del ítem; cuando
-                    el navegador traduce la página (Google Translate reemplaza
-                    los textos por nodos <font> propios), ese texto ya no es el
-                    nodo que React referencia y el insertBefore explota con
-                    "NotFoundError". Manteniéndola fija, solo se actualiza un
-                    atributo (seguro con la traducción).
-                  */}
-                  <span
-                    aria-hidden="true"
-                    className={`absolute inset-y-1.5 left-0 w-1 rounded-full ${
-                      activo ? "bg-brand" : "bg-transparent"
+                  <Icono
+                    className={`h-5 w-5 shrink-0 ${
+                      activo ? "" : "text-foreground-muted"
                     }`}
                   />
-                  {item.label}
+                  {label}
                 </Link>
               ) : (
-                <span className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-foreground-muted">
-                  {item.label}
-                  <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
-                    Pronto
+                <span className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground-muted">
+                  <Icono className="h-5 w-5 shrink-0 opacity-60" />
+                  <span className="flex flex-1 items-center justify-between">
+                    {label}
+                    <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                      Pronto
+                    </span>
                   </span>
                 </span>
               )}
@@ -64,6 +76,10 @@ export default function Sidebar() {
           );
         })}
       </ul>
+
+      <div className="mt-4 border-t border-border pt-4">
+        <SidebarTemaToggle />
+      </div>
     </nav>
   );
 }
