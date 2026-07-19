@@ -241,12 +241,14 @@ function TablaOperacionesAbiertas({
     visibles,
     totalCount,
     mostrarVerMas,
+    mostrarMinimizar,
     mostrarPaginador,
     pagina,
     totalPaginas,
     verMas,
+    colapsar,
     irAPagina,
-  } = useListaPaginada(abiertas);
+  } = useListaPaginada(abiertas, { conMinimizar: true });
 
   if (error) {
     return (
@@ -381,10 +383,12 @@ function TablaOperacionesAbiertas({
         visiblesCount={visibles.length}
         totalCount={totalCount}
         mostrarVerMas={mostrarVerMas}
+        mostrarMinimizar={mostrarMinimizar}
         mostrarPaginador={mostrarPaginador}
         pagina={pagina}
         totalPaginas={totalPaginas}
         verMas={verMas}
+        colapsar={colapsar}
         irAPagina={irAPagina}
       />
 
@@ -415,12 +419,14 @@ function TablaPlazosFijosPendientes() {
     visibles,
     totalCount,
     mostrarVerMas,
+    mostrarMinimizar,
     mostrarPaginador,
     pagina,
     totalPaginas,
     verMas,
+    colapsar,
     irAPagina,
-  } = useListaPaginada(pendientes);
+  } = useListaPaginada(pendientes, { conMinimizar: true });
 
   if (error) {
     return (
@@ -534,10 +540,12 @@ function TablaPlazosFijosPendientes() {
         visiblesCount={visibles.length}
         totalCount={totalCount}
         mostrarVerMas={mostrarVerMas}
+        mostrarMinimizar={mostrarMinimizar}
         mostrarPaginador={mostrarPaginador}
         pagina={pagina}
         totalPaginas={totalPaginas}
         verMas={verMas}
+        colapsar={colapsar}
         irAPagina={irAPagina}
       />
     </>

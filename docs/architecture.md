@@ -199,16 +199,15 @@ cargadas completas en memoria (no hay paginación del lado del servidor):
 Posiciones Abiertas (las 5 pestañas), Historial (operaciones cerradas y
 plazos fijos vencidos) y el historial de movimientos de `/cuenta`.
 
-Dos comportamientos según el flag `conMinimizar`:
+Comportamiento (flag `conMinimizar`, que desde 2026-07-19 usan **todas** estas
+listas: movimientos de cuenta, operaciones cerradas, plazos vencidos y las 5
+pestañas de Posiciones Abiertas): SIEMPRE arrancan **colapsadas en 5** (aunque
+haya para paginar). "Maximizar" las expande; si superan 10 se **paginan de a
+10** y se ofrece "Minimizar" junto al paginador para volver a colapsar. El
+colapsado inicial tiene prioridad sobre la paginación.
 
-- **Listas vivas** (sin `conMinimizar`, ej. Posiciones Abiertas): ≤5 sin
-  controles, 6-10 con botón "Maximizar", &gt;10 pasa directo a paginación real
-  de a 10.
-- **Historiales** (con `conMinimizar: true`, desde 2026-07-19: movimientos de
-  cuenta, operaciones cerradas y plazos vencidos): SIEMPRE arrancan colapsados
-  en 5 (aunque haya para paginar). "Maximizar" los expande; si superan 10 se
-  paginan de a 10 y se ofrece "Minimizar" junto al paginador para volver a
-  colapsar. El colapsado inicial tiene prioridad sobre la paginación.
+Sin `conMinimizar` (default, hoy sin usuarios) el hook mantiene el modo simple:
+≤5 sin controles, 6-10 con "Maximizar" sin minimizar, &gt;10 paginación directa.
 
 Los componentes de tabla reusados entre pestañas (`TablaOperacionesAbiertas`
 en Posiciones Abiertas) llevan `key` explícita por pestaña para resetear la
