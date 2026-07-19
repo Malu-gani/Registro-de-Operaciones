@@ -197,11 +197,22 @@ Hook + componente compartidos en `src/components/ListaPaginada.tsx`
 (`useListaPaginada`, `ControlesListaPaginada`), aplicados sobre listas ya
 cargadas completas en memoria (no hay paginación del lado del servidor):
 Posiciones Abiertas (las 5 pestañas), Historial (operaciones cerradas y
-plazos fijos vencidos) y el historial de movimientos de `/cuenta`. Regla:
-≤5 registros sin controles, 6-10 con botón "Ver todos", &gt;10 pasa a
-paginación real de a 10. Los componentes de tabla reusados entre pestañas
-(`TablaOperacionesAbiertas` en Posiciones Abiertas) llevan `key` explícita
-por pestaña para resetear la paginación al cambiar de tab.
+plazos fijos vencidos) y el historial de movimientos de `/cuenta`.
+
+Dos comportamientos según el flag `conMinimizar`:
+
+- **Listas vivas** (sin `conMinimizar`, ej. Posiciones Abiertas): ≤5 sin
+  controles, 6-10 con botón "Maximizar", &gt;10 pasa directo a paginación real
+  de a 10.
+- **Historiales** (con `conMinimizar: true`, desde 2026-07-19: movimientos de
+  cuenta, operaciones cerradas y plazos vencidos): SIEMPRE arrancan colapsados
+  en 5 (aunque haya para paginar). "Maximizar" los expande; si superan 10 se
+  paginan de a 10 y se ofrece "Minimizar" junto al paginador para volver a
+  colapsar. El colapsado inicial tiene prioridad sobre la paginación.
+
+Los componentes de tabla reusados entre pestañas (`TablaOperacionesAbiertas`
+en Posiciones Abiertas) llevan `key` explícita por pestaña para resetear la
+paginación al cambiar de tab.
 
 ## 2.2 Seguridad de acceso (RLS)
 

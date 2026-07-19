@@ -25,10 +25,15 @@ interface ListaPaginada<T> {
 }
 
 /**
- * Paginación progresiva para listas ya cargadas en memoria: hasta `inicial`
- * items no hay controles; entre `inicial` y `tamanoPagina` aparece "Ver más"
- * (y, si `conMinimizar`, "Minimizar" para volver a colapsar); por encima de
- * `tamanoPagina` se activa paginación real en bloques de `tamanoPagina`.
+ * Paginación progresiva para listas ya cargadas en memoria.
+ *
+ * - Sin `conMinimizar` (listas vivas, ej. Posiciones Abiertas): hasta `inicial`
+ *   sin controles; entre `inicial` y `tamanoPagina` aparece "Maximizar"; por
+ *   encima de `tamanoPagina`, paginación real de una.
+ * - Con `conMinimizar` (historiales): SIEMPRE arranca colapsado en `inicial`
+ *   (aunque haya para paginar). Al maximizar, si supera `tamanoPagina` se pagina
+ *   en bloques de `tamanoPagina`; y siempre se ofrece "Minimizar" para volver a
+ *   colapsar en `inicial`.
  */
 export function useListaPaginada<T>(
   items: T[],
@@ -37,25 +42,11 @@ export function useListaPaginada<T>(
   const [expandido, setExpandido] = useState(false);
   const [pagina, setPagina] = useState(1);
 
-  if (items.length > tamanoPagina) {
-    const totalPaginas = Math.ceil(items.length / tamanoPagina);
-    const paginaSegura = Math.min(pagina, totalPaginas);
-    const inicioIdx = (paginaSegura - 1) * tamanoPagina;
-    return {
-      visibles: items.slice(inicioIdx, inicioIdx + tamanoPagina),
-      totalCount: items.length,
-      mostrarVerMas: false,
-      mostrarMinimizar: false,
-      mostrarPaginador: true,
-      pagina: paginaSegura,
-      totalPaginas,
-      verMas: () => {},
-      colapsar: () => {},
-      irAPagina: setPagina,
-    };
-  }
+  const puedeColapsar = items.length > inicial;
 
-  if (items.length > inicial && !expandido) {
+  // Historiales: el colapsado inicial (5) tiene prioridad sobre la paginación,
+  // así que hasta que no se maximiza se ven solo `inicial`, sin importar el total.
+  if (conMinimizar && puedeColapsar && !expandido) {
     return {
       visibles: items.slice(0, inicial),
       totalCount: items.length,
@@ -70,11 +61,51 @@ export function useListaPaginada<T>(
     };
   }
 
+  // Paginación real (más de un bloque). En historiales se llega acá recién al
+  // maximizar; se mantiene el botón "Minimizar" junto al paginador.
+  if (items.length > tamanoPagina) {
+    const totalPaginas = Math.ceil(items.length / tamanoPagina);
+    const paginaSegura = Math.min(pagina, totalPaginas);
+    const inicioIdx = (paginaSegura - 1) * tamanoPagina;
+    return {
+      visibles: items.slice(inicioIdx, inicioIdx + tamanoPagina),
+      totalCount: items.length,
+      mostrarVerMas: false,
+      mostrarMinimizar: conMinimizar,
+      mostrarPaginador: true,
+      pagina: paginaSegura,
+      totalPaginas,
+      verMas: () => {},
+      colapsar: () => {
+        setPagina(1);
+        setExpandido(false);
+      },
+      irAPagina: setPagina,
+    };
+  }
+
+  // Entre `inicial` y `tamanoPagina`, colapsado (lista viva no expandida aún).
+  if (puedeColapsar && !expandido) {
+    return {
+      visibles: items.slice(0, inicial),
+      totalCount: items.length,
+      mostrarVerMas: true,
+      mostrarMinimizar: false,
+      mostrarPaginador: false,
+      pagina: 1,
+      totalPaginas: 1,
+      verMas: () => setExpandido(true),
+      colapsar: () => {},
+      irAPagina: () => {},
+    };
+  }
+
+  // Todo visible (pocos items, o expandido sin llegar a paginar).
   return {
     visibles: items,
     totalCount: items.length,
     mostrarVerMas: false,
-    mostrarMinimizar: conMinimizar && expandido && items.length > inicial,
+    mostrarMinimizar: conMinimizar && expandido && puedeColapsar,
     mostrarPaginador: false,
     pagina: 1,
     totalPaginas: 1,
@@ -118,51 +149,52 @@ export function ControlesListaPaginada({
           onClick={verMas}
           className="rounded-md border border-border px-4 py-1.5 text-xs font-medium text-foreground-muted hover:bg-surface-muted hover:text-foreground"
         >
-          Ver los {totalCount} registros
+          Maximizar ({totalCount})
         </button>
       </div>
     );
   }
 
-  if (mostrarMinimizar) {
-    return (
-      <div className="flex justify-center pt-3">
-        <button
-          type="button"
-          onClick={colapsar}
-          className="rounded-md border border-border px-4 py-1.5 text-xs font-medium text-foreground-muted hover:bg-surface-muted hover:text-foreground"
-        >
-          Minimizar
-        </button>
-      </div>
-    );
-  }
+  if (!mostrarPaginador && !mostrarMinimizar) return null;
 
-  if (mostrarPaginador) {
-    return (
-      <div className="flex items-center justify-between pt-3 text-xs text-foreground-muted">
-        <button
-          type="button"
-          onClick={() => irAPagina(pagina - 1)}
-          disabled={pagina <= 1}
-          className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-surface-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
-        >
-          Anterior
-        </button>
-        <span>
-          Página {pagina} de {totalPaginas} · {visiblesCount} de {totalCount}
-        </span>
-        <button
-          type="button"
-          onClick={() => irAPagina(pagina + 1)}
-          disabled={pagina >= totalPaginas}
-          className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-surface-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
-        >
-          Siguiente
-        </button>
-      </div>
-    );
-  }
-
-  return null;
+  // Maximizado: paginador (si supera un bloque) y "Minimizar" para volver a
+  // colapsar. Pueden aparecer juntos en un historial largo.
+  return (
+    <div className="flex flex-col gap-2 pt-3">
+      {mostrarPaginador && (
+        <div className="flex items-center justify-between text-xs text-foreground-muted">
+          <button
+            type="button"
+            onClick={() => irAPagina(pagina - 1)}
+            disabled={pagina <= 1}
+            className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-surface-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            Anterior
+          </button>
+          <span>
+            Página {pagina} de {totalPaginas} · {visiblesCount} de {totalCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => irAPagina(pagina + 1)}
+            disabled={pagina >= totalPaginas}
+            className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-surface-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+      {mostrarMinimizar && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={colapsar}
+            className="rounded-md border border-border px-4 py-1.5 text-xs font-medium text-foreground-muted hover:bg-surface-muted hover:text-foreground"
+          >
+            Minimizar
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
