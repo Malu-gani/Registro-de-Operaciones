@@ -296,6 +296,8 @@ export default function GestionPortafolios() {
   } = usePortafolios();
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nombreEditado, setNombreEditado] = useState("");
+  const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [portafolioABorrar, setPortafolioABorrar] = useState<Portafolio | null>(
     null
   );
@@ -304,13 +306,27 @@ export default function GestionPortafolios() {
   const iniciarEdicion = (p: Portafolio) => {
     setEditandoId(p.id);
     setNombreEditado(p.nombre);
+    setErrorEdicion(null);
   };
 
   const guardarEdicion = async (id: string) => {
-    if (nombreEditado.trim()) {
-      await renombrarPortafolio(id, nombreEditado.trim());
+    if (guardandoEdicion) return;
+    if (!nombreEditado.trim()) {
+      setEditandoId(null);
+      return;
     }
-    setEditandoId(null);
+    setGuardandoEdicion(true);
+    setErrorEdicion(null);
+    try {
+      await renombrarPortafolio(id, nombreEditado.trim());
+      setEditandoId(null);
+    } catch (e) {
+      setErrorEdicion(
+        e instanceof Error ? e.message : "No se pudo renombrar el portafolio."
+      );
+    } finally {
+      setGuardandoEdicion(false);
+    }
   };
 
   return (
@@ -348,20 +364,30 @@ export default function GestionPortafolios() {
                   esActivo ? "border-brand bg-brand/5" : "border-border"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                   {editando ? (
-                    <input
-                      autoFocus
-                      className={`${inputClasses} min-w-0`}
-                      value={nombreEditado}
+                    <div
+                      className="flex min-w-0 flex-1 flex-col gap-1"
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => setNombreEditado(e.target.value)}
-                      onBlur={() => guardarEdicion(p.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") guardarEdicion(p.id);
-                        if (e.key === "Escape") setEditandoId(null);
-                      }}
-                    />
+                    >
+                      <input
+                        autoFocus
+                        className={`${inputClasses} min-w-0`}
+                        value={nombreEditado}
+                        onChange={(e) => setNombreEditado(e.target.value)}
+                        onBlur={() => guardarEdicion(p.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") guardarEdicion(p.id);
+                          if (e.key === "Escape") {
+                            setErrorEdicion(null);
+                            setEditandoId(null);
+                          }
+                        }}
+                      />
+                      {errorEdicion && (
+                        <span className="text-xs text-risk-red">{errorEdicion}</span>
+                      )}
+                    </div>
                   ) : (
                     <>
                       <div className="flex min-w-0 items-center gap-1.5">

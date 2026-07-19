@@ -27,8 +27,12 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
         <span className="glow-ring flex h-7 w-7 items-center justify-center rounded-md bg-brand text-sm font-semibold text-brand-foreground">
           T
         </span>
-        <span className="hidden text-sm font-semibold text-foreground sm:inline">
-          Diario de Trading
+        {/* Corto en pantallas medianas, completo solo en grandes (lg+). */}
+        <span className="hidden text-sm font-semibold text-foreground sm:inline lg:hidden">
+          Gestor de Portfolio
+        </span>
+        <span className="hidden text-sm font-semibold text-foreground lg:inline">
+          Gestor de Portfolio y Operaciones
         </span>
       </div>
 
@@ -54,7 +58,11 @@ export default function Navbar({ userEmail }: { userEmail: string }) {
           {(userEmail.trim()[0] ?? "?").toUpperCase()}
         </span>
 
-        <ToggleTema />
+        {/* Solo en mobile: en desktop el tema se cambia desde el pie del
+            Sidebar (SidebarTemaToggle), que ahí no se ve. */}
+        <span className="sm:hidden">
+          <ToggleTema />
+        </span>
 
         <form action={signOut}>
           <button

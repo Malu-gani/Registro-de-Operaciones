@@ -2,16 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ComponentType } from "react";
+import {
+  IconoCuenta,
+  IconoNuevaOperacion,
+  IconoPosiciones,
+  IconoResumen,
+  IconoHistorial,
+  IconoAjustes,
+} from "@/components/navIcons";
 
 // Solo las secciones ya disponibles (las de "Pronto" del Sidebar quedan
 // fuera de la barra inferior). Etiquetas cortas para que entren en una fila.
-const items = [
-  { label: "Cuenta", href: "/cuenta" },
-  { label: "Nueva", href: "/nueva-operacion" },
-  { label: "Posiciones", href: "/posiciones-abiertas" },
-  { label: "Resumen", href: "/dashboard" },
-  { label: "Historial", href: "/historial" },
-  { label: "Ajustes", href: "/ajustes" },
+const items: {
+  label: string;
+  href: string;
+  Icono: ComponentType<{ className?: string }>;
+}[] = [
+  { label: "Cuenta", href: "/cuenta", Icono: IconoCuenta },
+  { label: "Nueva", href: "/nueva-operacion", Icono: IconoNuevaOperacion },
+  { label: "Posiciones", href: "/posiciones-abiertas", Icono: IconoPosiciones },
+  { label: "Resumen", href: "/dashboard", Icono: IconoResumen },
+  { label: "Historial", href: "/historial", Icono: IconoHistorial },
+  { label: "Ajustes", href: "/ajustes", Icono: IconoAjustes },
 ];
 
 export default function MobileNav() {
@@ -19,20 +32,22 @@ export default function MobileNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-surface sm:hidden">
-      {items.map((item) => {
+      {items.map(({ label, href, Icono }) => {
         const activo =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+          pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-1 flex-col items-center justify-center border-t-2 px-1 py-2.5 text-center text-[11px] font-medium leading-tight transition-colors ${
+            key={href}
+            href={href}
+            aria-current={activo ? "page" : undefined}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 border-t-2 px-1 py-2 text-center text-[10px] font-medium leading-tight transition-colors ${
               activo
                 ? "border-brand bg-brand/10 text-brand"
                 : "border-transparent text-foreground-muted"
             }`}
           >
-            {item.label}
+            <Icono className="h-5 w-5 shrink-0" />
+            {label}
           </Link>
         );
       })}

@@ -10,6 +10,13 @@ interface PortafolioRow {
   created_at: string;
 }
 
+const MENSAJE_NOMBRE_DUPLICADO = "Ya existe un portafolio con ese nombre.";
+
+function mensajeError(error: { code?: string; message: string }): string {
+  if (error.code === "23505") return MENSAJE_NOMBRE_DUPLICADO;
+  return error.message;
+}
+
 function rowToPortafolio(row: PortafolioRow): Portafolio {
   return {
     id: row.id,
@@ -48,7 +55,7 @@ export async function createPortafolio(
     .select("id, nombre, tipo_mercado, created_at")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(mensajeError(error));
 
   return rowToPortafolio(data as PortafolioRow);
 }
@@ -64,7 +71,7 @@ export async function renamePortafolio(
     .select("id, nombre, tipo_mercado, created_at")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(mensajeError(error));
 
   return rowToPortafolio(data as PortafolioRow);
 }

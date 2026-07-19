@@ -212,6 +212,22 @@ body {
     0 0 18px -4px var(--glow);
 }
 
+/* Ítem activo de la navegación: píldora con degradé violeta + glow, el mismo
+   lenguaje visual que la tarjeta hero. Se aplica solo cambiando la clase del
+   <Link> (nunca insertando/quitando nodos), para no romper con la traducción
+   del navegador (ver reference-react-translate-crash). */
+.nav-activo {
+  background:
+    radial-gradient(
+      120% 160% at 100% 0%,
+      color-mix(in srgb, var(--hero-from) 55%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+  color: var(--hero-foreground);
+  box-shadow: 0 12px 26px -14px var(--glow);
+}
+
 /* Realce breve de una sección al llegar por scroll (ej. "ir a la
    distribución"): un anillo violeta que aparece y se desvanece. */
 @keyframes destello-seccion {
