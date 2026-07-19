@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTrades } from "@/context/TradesContext";
+import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import EquityCurve from "@/components/EquityCurve";
 import type { Trade } from "@/types/trading";
 
@@ -130,6 +131,76 @@ const iconos = {
     </svg>
   ),
 };
+
+/**
+ * Sección independiente de Plazos Fijos en el Resumen. Los plazos no tienen
+ * P&L / win rate / R:R como las operaciones, así que no entran en el switch de
+ * categorías: se muestran aparte, agregados por divisa (ARS / USD). "Activos" =
+ * todavía no liquidados (el capital sigue colocado, aunque el plazo ya venza).
+ */
+function SeccionPlazosFijos() {
+  const { plazosFijos, loading, error } = usePlazosFijos();
+
+  if (loading || error) return null;
+
+  const activos = plazosFijos.filter((pf) => pf.estado !== "liquidado");
+
+  if (activos.length === 0) {
+    return (
+      <div className="card-hover rounded-xl border border-border bg-surface p-6">
+        <h2 className="mb-2 text-sm font-semibold text-foreground">Plazos fijos</h2>
+        <p className="text-sm text-foreground-muted">
+          No tiene plazos fijos activos en este portafolio.
+        </p>
+      </div>
+    );
+  }
+
+  const resumen = (["ARS", "USD"] as const)
+    .map((divisa) => {
+      const items = activos.filter((pf) => pf.divisa === divisa);
+      return {
+        divisa,
+        cantidad: items.length,
+        capital: items.reduce((acc, pf) => acc + pf.monto, 0),
+        interes: items.reduce((acc, pf) => acc + pf.interesEstimado, 0),
+      };
+    })
+    .filter((r) => r.cantidad > 0);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-sm font-semibold text-foreground">Plazos fijos activos</h2>
+      {resumen.map((r) => (
+        <div key={r.divisa} className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground-muted">
+              {r.divisa}
+            </span>
+            <span className="text-xs text-foreground-muted">
+              {r.cantidad} {r.cantidad === 1 ? "plazo activo" : "plazos activos"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <KpiCard
+              label={`Capital colocado (${r.divisa})`}
+              value={formatearMoneda(r.capital, r.divisa)}
+            />
+            <KpiCard
+              label={`Interés proyectado (${r.divisa})`}
+              value={`+${formatearMoneda(r.interes, r.divisa)}`}
+              tone="positive"
+            />
+            <KpiCard
+              label={`Total al vencimiento (${r.divisa})`}
+              value={formatearMoneda(r.capital + r.interes, r.divisa)}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { trades, loading, error } = useTrades();
@@ -352,6 +423,8 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
+
+      <SeccionPlazosFijos />
       </>
       )}
     </div>
