@@ -1,10 +1,16 @@
-# Diario de Trading — Seguimiento de Operaciones
+# Gestor de Portfolio y Operaciones
 
 Diario de trading (acciones + cripto + plazo fijo) con cálculo automático de
 gestión de riesgo (tamaño de posición, ratio R:R, % de riesgo de la
 operación). El usuario (dueño del repo) no tiene background técnico —
 explicaciones en las respuestas deben ser en español, sin asumir
 conocimiento previo de stacks.
+
+> **Nombres (para no confundirse):** el título visible de la app es **"Gestor
+> de Portfolio y Operaciones"** (desde 2026-07-19). El repo de GitHub se llama
+> `Registro-de-Operaciones` y la carpeta local `seguimiento-operaciones`; las
+> memorias de Claude anteriores a esa fecha lo llaman "Diario de Trading".
+> Todos refieren a este mismo proyecto.
 
 > **Dónde vive el estado:** este archivo es la **puerta de entrada
 > operativa** (cómo levantar, gotchas, punteros). El estado detallado, la

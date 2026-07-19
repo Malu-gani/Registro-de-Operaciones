@@ -2,7 +2,8 @@
 description: Arranque de sesión — orienta y resume dónde quedamos
 ---
 
-Estás retomando el proyecto **Diario de Trading — Seguimiento de Operaciones**.
+Estás retomando el proyecto **Gestor de Portfolio y Operaciones** (repo
+`Registro-de-Operaciones`; las memorias viejas lo llaman "Diario de Trading").
 El `ESTADO.md` (si existe) y las memorias (`MEMORY.md` + archivos) YA están
 auto-cargados en contexto — no hace falta pedir que se carguen.
 
