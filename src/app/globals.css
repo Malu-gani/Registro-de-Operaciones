@@ -212,11 +212,35 @@ body {
     0 0 18px -4px var(--glow);
 }
 
+/* Realce breve de una sección al llegar por scroll (ej. "ir a la
+   distribución"): un anillo violeta que aparece y se desvanece. */
+@keyframes destello-seccion {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  25% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--brand) 55%, transparent),
+      0 0 30px -4px var(--glow);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.scroll-destacado {
+  animation: destello-seccion 1.3s ease-out;
+  border-radius: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card-hover {
     transition: none;
   }
   .card-hover:hover {
     transform: none;
+  }
+  .scroll-destacado {
+    animation: none;
   }
 }
