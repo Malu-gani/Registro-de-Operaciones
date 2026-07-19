@@ -52,6 +52,11 @@ const LABEL_MERCADO: Record<TipoMercadoPortafolio, string> = {
   mixto: "Mixto",
 };
 
+/** Etiqueta legible del tipo de mercado (Acciones/Cripto/Mixto). */
+export function labelMercado(tipo: TipoMercadoPortafolio): string {
+  return LABEL_MERCADO[tipo];
+}
+
 /**
  * Mensaje de error cuando se intenta cargar una operación en un portafolio que
  * no la admite (ej. una operación de cripto en un portafolio de Acciones).

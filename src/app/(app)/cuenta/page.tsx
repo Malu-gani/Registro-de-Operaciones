@@ -548,7 +548,10 @@ export default function CuentaPage() {
             )}
           </div>
 
-          <section className="flex flex-col gap-8">
+          <section
+            id="distribucion-portafolio"
+            className="flex scroll-mt-20 flex-col gap-8"
+          >
             <h2 className="border-b border-border pb-2 text-base font-semibold text-foreground">
               Distribución de {nombrePortafolio}
             </h2>

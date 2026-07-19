@@ -6,6 +6,7 @@ import { fetchTrades } from "@/lib/tradesApi";
 import { fetchPlazosFijos } from "@/lib/plazosFijosApi";
 import { fetchSaldos } from "@/lib/cuentasApi";
 import { comprometidoPorCuenta } from "@/utils/cuentas";
+import { labelMercado } from "@/utils/tipoMercado";
 import { inputClasses } from "@/components/formStyles";
 import { formatMonto } from "@/components/portafolio/utils";
 import CrearPortafolioModal from "@/components/portafolio/CrearPortafolioModal";
@@ -43,11 +44,60 @@ function IconoCheck() {
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
-      className="h-4 w-4 text-brand"
+      className="h-4 w-4 shrink-0 text-brand"
     >
       <path d="M4 10.5l4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
+}
+
+function IconoFlechaAbajo() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      className="h-4 w-4 transition-transform group-hover:translate-y-0.5"
+    >
+      <path d="M10 4v12M5 11l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Ancestro scrolleable más cercano (el `<main>` del layout, que tiene el
+ * overflow), para no depender de la estructura exacta del DOM. */
+function ancestroScrolleable(el: HTMLElement): HTMLElement {
+  let nodo = el.parentElement;
+  while (nodo) {
+    const oy = getComputedStyle(nodo).overflowY;
+    if ((oy === "auto" || oy === "scroll") && nodo.scrollHeight > nodo.clientHeight) {
+      return nodo;
+    }
+    nodo = nodo.parentElement;
+  }
+  return (document.scrollingElement as HTMLElement) ?? document.documentElement;
+}
+
+/**
+ * Lleva suavemente a la sección "Distribución de {portafolio}" (en /cuenta) y
+ * le da un realce breve al llegar. Scrollea el contenedor real (no
+ * `scrollIntoView`, que en Chrome no anima contenedores anidados con `smooth`).
+ * El destino existe solo cuando hay un portafolio específico con saldos
+ * cargados; si no está, no hace nada.
+ */
+function irADistribucion() {
+  const el = document.getElementById("distribucion-portafolio");
+  if (!el) return;
+  const cont = ancestroScrolleable(el);
+  const destino =
+    el.getBoundingClientRect().top -
+    cont.getBoundingClientRect().top +
+    cont.scrollTop -
+    16;
+  cont.scrollTo({ top: destino, behavior: "smooth" });
+  el.classList.add("scroll-destacado");
+  window.setTimeout(() => el.classList.remove("scroll-destacado"), 1400);
 }
 
 /** Datos que necesita el modal de borrado, siempre traídos frescos del portafolio en cuestión (no depende de cuál esté activo en el Navbar). */
@@ -266,7 +316,7 @@ export default function GestionPortafolios() {
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Mis Portafolios</h2>
+        <h2 className="text-sm font-semibold text-foreground">Tus Portafolios</h2>
         <button
           type="button"
           onClick={() => setMostrarCrear(true)}
@@ -286,75 +336,87 @@ export default function GestionPortafolios() {
           Todavía no tiene portafolios cargados.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border">
-          <li
-            onClick={() => setPortafolioActivoId(TODOS_LOS_PORTAFOLIOS)}
-            className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border-l-2 px-2 py-2 ${
-              portafolioActivoId === TODOS_LOS_PORTAFOLIOS
-                ? "border-brand bg-brand/10"
-                : "border-transparent hover:bg-surface-muted"
-            }`}
-          >
-            <span className="text-sm text-foreground">Todos los portafolios</span>
-            {portafolioActivoId === TODOS_LOS_PORTAFOLIOS && <IconoCheck />}
-          </li>
-
+        <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))]">
           {portafolios.map((p) => {
             const esActivo = p.id === portafolioActivoId;
+            const editando = editandoId === p.id;
             return (
-              <li
+              <div
                 key={p.id}
-                onClick={() => editandoId !== p.id && setPortafolioActivoId(p.id)}
-                className={`flex cursor-pointer items-center justify-between gap-3 rounded-md border-l-2 px-2 py-2 ${
-                  esActivo
-                    ? "border-brand bg-brand/10"
-                    : "border-transparent hover:bg-surface-muted"
+                onClick={() => !editando && setPortafolioActivoId(p.id)}
+                className={`card-hover flex cursor-pointer flex-col justify-between gap-3 rounded-xl border bg-surface p-4 ${
+                  esActivo ? "border-brand bg-brand/5" : "border-border"
                 }`}
               >
-                {editandoId === p.id ? (
-                  <input
-                    autoFocus
-                    className={`${inputClasses} max-w-xs`}
-                    value={nombreEditado}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => setNombreEditado(e.target.value)}
-                    onBlur={() => guardarEdicion(p.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") guardarEdicion(p.id);
-                      if (e.key === "Escape") setEditandoId(null);
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-foreground">{p.nombre}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        iniciarEdicion(p);
+                <div className="flex items-start justify-between gap-2">
+                  {editando ? (
+                    <input
+                      autoFocus
+                      className={`${inputClasses} min-w-0`}
+                      value={nombreEditado}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setNombreEditado(e.target.value)}
+                      onBlur={() => guardarEdicion(p.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") guardarEdicion(p.id);
+                        if (e.key === "Escape") setEditandoId(null);
                       }}
-                      aria-label={`Editar nombre de ${p.nombre}`}
-                      className="rounded-md p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground"
-                    >
-                      <IconoLapiz />
-                    </button>
-                    {esActivo && <IconoCheck />}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPortafolioABorrar(p);
-                  }}
-                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-risk-red hover:bg-risk-red-bg"
-                >
-                  Borrar
-                </button>
-              </li>
+                    />
+                  ) : (
+                    <>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-sm font-semibold text-foreground">
+                          {p.nombre}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            iniciarEdicion(p);
+                          }}
+                          aria-label={`Editar nombre de ${p.nombre}`}
+                          className="shrink-0 rounded-md p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground"
+                        >
+                          <IconoLapiz />
+                        </button>
+                      </div>
+                      {esActivo && <IconoCheck />}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground-muted">
+                    {labelMercado(p.tipoMercado)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPortafolioABorrar(p);
+                    }}
+                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-risk-red hover:bg-risk-red-bg"
+                  >
+                    Borrar
+                  </button>
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
+      )}
+
+      {portafolioActivoId !== TODOS_LOS_PORTAFOLIOS && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={irADistribucion}
+            className="group inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand/10 px-5 py-2.5 text-sm font-semibold text-brand transition-all hover:bg-brand/20 hover:shadow-[0_10px_28px_-14px_var(--glow)]"
+          >
+            Dirigite a la distribución de tu portfolio
+            <IconoFlechaAbajo />
+          </button>
+        </div>
       )}
 
       {portafolioABorrar && (
