@@ -61,6 +61,15 @@ Para probar en el navegador embebido (Claude Browser tools): ya existe
   sobre el mismo directorio, ni cambiando de puerto. Hay que esperar a que
   se libere o pedirle al usuario que cierre el suyo. El usuario y Claude
   nunca corren `npm run dev` a la vez (ver memoria `feedback-manual-qa-testing`).
+- **Caché de `.next` viejo tras mover ramas con el server corriendo**
+  (visto 2026-07-18, PR #23): si el `next dev` estuvo corriendo mientras los
+  archivos cambiaban por debajo (crear rama → merge → volver a `main`), el
+  caché de build puede quedarse con CSS/tema viejo y el usuario ve la versión
+  anterior aunque el código en disco sea el nuevo. Un hard refresh del
+  navegador (`Ctrl+Shift+R`) suele alcanzar; si no, cortar el server, borrar
+  `.next` (`Remove-Item -Recurse -Force .next`) y `npm run dev` de nuevo.
+  Verificar siempre el disco primero (`git log` + `grep` del token nuevo en
+  `globals.css`) antes de asumir que es el código.
 
 ## Fuentes de verdad (leer antes de tocar lógica de negocio)
 

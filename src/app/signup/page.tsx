@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "./actions";
+import { REQUISITOS_PASSWORD_HINT } from "@/utils/passwordPolicy";
 
 export default async function SignupPage({
   searchParams,
@@ -53,8 +54,7 @@ export default async function SignupPage({
               className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
             />
             <span className="text-xs text-foreground-muted">
-              Mínimo 8 caracteres, con mayúscula, minúscula, número y
-              carácter especial.
+              {REQUISITOS_PASSWORD_HINT}
             </span>
           </label>
 
