@@ -23,8 +23,14 @@ function Mensaje({ estado }: { estado: Estado }) {
   );
 }
 
-/** Cambiar contraseña. En una sesión activa Supabase no exige la contraseña vieja. */
-function CambiarPassword() {
+/**
+ * Cambiar contraseña. Supabase no exige la contraseña vieja para `updateUser`,
+ * así que la verificamos nosotros reautenticando con `signInWithPassword`
+ * (mismo patrón que el borrado de cuenta): si la actual es incorrecta, cortamos
+ * antes de actualizar. Pide actual + nueva + repetir la nueva.
+ */
+function CambiarPassword({ emailActual }: { emailActual: string }) {
+  const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -32,21 +38,43 @@ function CambiarPassword() {
 
   const guardar = async () => {
     setEstado(null);
+    if (!actual) {
+      setEstado({ tipo: "error", texto: "Ingresá tu contraseña actual." });
+      return;
+    }
     if (nueva.length < 6) {
-      setEstado({ tipo: "error", texto: "La contraseña debe tener al menos 6 caracteres." });
+      setEstado({ tipo: "error", texto: "La nueva contraseña debe tener al menos 6 caracteres." });
       return;
     }
     if (nueva !== confirmar) {
       setEstado({ tipo: "error", texto: "Las contraseñas no coinciden." });
       return;
     }
+    if (nueva === actual) {
+      setEstado({ tipo: "error", texto: "La nueva contraseña debe ser distinta a la actual." });
+      return;
+    }
     setGuardando(true);
+
+    // 1. Verificamos la contraseña actual reautenticando la sesión.
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: emailActual,
+      password: actual,
+    });
+    if (authError) {
+      setGuardando(false);
+      setEstado({ tipo: "error", texto: "Contraseña actual incorrecta." });
+      return;
+    }
+
+    // 2. Actualizamos a la nueva.
     const { error } = await supabase.auth.updateUser({ password: nueva });
     setGuardando(false);
     if (error) {
       setEstado({ tipo: "error", texto: error.message });
       return;
     }
+    setActual("");
     setNueva("");
     setConfirmar("");
     setEstado({ tipo: "ok", texto: "Contraseña actualizada." });
@@ -55,6 +83,16 @@ function CambiarPassword() {
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
       <p className="text-xs font-medium text-foreground">Cambiar contraseña</p>
+      <label className="flex flex-col gap-1">
+        <span className={labelClasses}>Contraseña actual</span>
+        <input
+          type="password"
+          className={inputClasses}
+          value={actual}
+          onChange={(e) => setActual(e.target.value)}
+          autoComplete="current-password"
+        />
+      </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className={labelClasses}>Nueva contraseña</span>
@@ -67,7 +105,7 @@ function CambiarPassword() {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className={labelClasses}>Repetir contraseña</span>
+          <span className={labelClasses}>Repetir nueva contraseña</span>
           <input
             type="password"
             className={inputClasses}
@@ -81,7 +119,7 @@ function CambiarPassword() {
       <button
         type="button"
         onClick={guardar}
-        disabled={guardando || !nueva || !confirmar}
+        disabled={guardando || !actual || !nueva || !confirmar}
         className="self-start rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
       >
         {guardando ? "Guardando..." : "Actualizar contraseña"}
@@ -90,64 +128,10 @@ function CambiarPassword() {
   );
 }
 
-/** Cambiar email. Dispara la confirmación por mail que tenga configurada Supabase. */
-function CambiarEmail({ emailActual }: { emailActual: string }) {
-  const [email, setEmail] = useState("");
-  const [guardando, setGuardando] = useState(false);
-  const [estado, setEstado] = useState<Estado>(null);
-
-  const guardar = async () => {
-    setEstado(null);
-    const limpio = email.trim();
-    if (!limpio || !limpio.includes("@")) {
-      setEstado({ tipo: "error", texto: "Ingresá un email válido." });
-      return;
-    }
-    if (limpio === emailActual) {
-      setEstado({ tipo: "error", texto: "Ese ya es tu email actual." });
-      return;
-    }
-    setGuardando(true);
-    const { error } = await supabase.auth.updateUser({ email: limpio });
-    setGuardando(false);
-    if (error) {
-      setEstado({ tipo: "error", texto: error.message });
-      return;
-    }
-    setEmail("");
-    setEstado({
-      tipo: "ok",
-      texto:
-        "Pedido de cambio enviado. Si tenés confirmación por email activada, revisá tu casilla para confirmarlo.",
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-3 border-t border-border pt-4">
-      <p className="text-xs font-medium text-foreground">Cambiar email</p>
-      <label className="flex flex-col gap-1">
-        <span className={labelClasses}>Nuevo email</span>
-        <input
-          type="email"
-          className={inputClasses}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={emailActual}
-          autoComplete="email"
-        />
-      </label>
-      <Mensaje estado={estado} />
-      <button
-        type="button"
-        onClick={guardar}
-        disabled={guardando || !email}
-        className="self-start rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
-      >
-        {guardando ? "Guardando..." : "Cambiar email"}
-      </button>
-    </div>
-  );
-}
+// El formulario de "Cambiar email" se quitó a propósito: cambiar el email de
+// acceso depende de tener la confirmación por mail configurada en Supabase, que
+// todavía no está. Se repondrá cuando habilitemos verificación/recuperación por
+// correo (ver el historial de sesiones del proyecto).
 
 export default function SeccionCuenta() {
   const [emailActual, setEmailActual] = useState<string>("");
@@ -167,8 +151,7 @@ export default function SeccionCuenta() {
         <span className={labelClasses}>Email actual</span>
         <p className="text-sm text-foreground">{emailActual || "…"}</p>
       </div>
-      <CambiarPassword />
-      <CambiarEmail emailActual={emailActual} />
+      <CambiarPassword emailActual={emailActual} />
     </SeccionAjustes>
   );
 }
