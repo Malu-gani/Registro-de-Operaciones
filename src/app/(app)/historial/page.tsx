@@ -6,8 +6,30 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { useFiltroFechaPreset, SelectorFechaPreset } from "@/components/FiltroFechaPreset";
+import { FiltroChips } from "@/components/FiltroChips";
 import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
+
+type FiltroResultado = "todas" | "ganadoras" | "perdedoras";
+const OPCIONES_RESULTADO = [
+  { value: "todas", label: "Todas" },
+  { value: "ganadoras", label: "Ganadoras" },
+  { value: "perdedoras", label: "Perdedoras" },
+] as const;
+
+type FiltroDireccion = "todas" | "long" | "short";
+const OPCIONES_DIRECCION = [
+  { value: "todas", label: "Todas" },
+  { value: "long", label: "Long" },
+  { value: "short", label: "Short" },
+] as const;
+
+type FiltroMoneda = "todas" | "ARS" | "USD";
+const OPCIONES_MONEDA = [
+  { value: "todas", label: "Todas" },
+  { value: "ARS", label: "ARS" },
+  { value: "USD", label: "USD" },
+] as const;
 import EquityCurve from "@/components/EquityCurve";
 import ExportarPanel from "@/components/historial/ExportarPanel";
 import ImportarPanel from "@/components/historial/ImportarPanel";
@@ -53,12 +75,20 @@ function TablaOperacionesCerradas({
   tipoActivo,
   subTipoActivo,
   mensajeVacio,
+  filtroResultado = false,
+  filtroDireccion = false,
 }: {
   tipoActivo: TipoActivo;
   subTipoActivo?: SubTipoAccion | SubTipoCrypto;
   mensajeVacio: string;
+  /** Muestra chips Ganadoras/Perdedoras (por signo de resultadoPnl). */
+  filtroResultado?: boolean;
+  /** Muestra chips Long/Short (solo aplica a Cripto futuros). */
+  filtroDireccion?: boolean;
 }) {
   const { trades, loading, error } = useTrades();
+  const [resultado, setResultado] = useState<FiltroResultado>("todas");
+  const [direccion, setDireccion] = useState<FiltroDireccion>("todas");
 
   const ordenadas = trades
     .filter(
@@ -68,6 +98,18 @@ function TablaOperacionesCerradas({
         (subTipoActivo === undefined || t.subTipoActivo === subTipoActivo)
     )
     .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada));
+
+  const filtradas = ordenadas.filter((t) => {
+    if (filtroResultado && resultado !== "todas") {
+      if (t.resultadoPnl === undefined) return false;
+      if (resultado === "ganadoras" && t.resultadoPnl < 0) return false;
+      if (resultado === "perdedoras" && t.resultadoPnl >= 0) return false;
+    }
+    if (filtroDireccion && direccion !== "todas" && t.tipoOperacion !== direccion) {
+      return false;
+    }
+    return true;
+  });
 
   const {
     visibles,
@@ -80,7 +122,7 @@ function TablaOperacionesCerradas({
     verMas,
     colapsar,
     irAPagina,
-  } = useListaPaginada(ordenadas, { conMinimizar: true });
+  } = useListaPaginada(filtradas, { conMinimizar: true });
 
   if (error) {
     return (
@@ -100,6 +142,33 @@ function TablaOperacionesCerradas({
 
   return (
     <div className="flex flex-col gap-3">
+      {(filtroResultado || filtroDireccion) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {filtroDireccion && (
+            <FiltroChips
+              opciones={OPCIONES_DIRECCION}
+              value={direccion}
+              onChange={setDireccion}
+              ariaLabel="Filtrar por dirección"
+            />
+          )}
+          {filtroResultado && (
+            <FiltroChips
+              opciones={OPCIONES_RESULTADO}
+              value={resultado}
+              onChange={setResultado}
+              ariaLabel="Filtrar por resultado"
+            />
+          )}
+        </div>
+      )}
+
+      {filtradas.length === 0 ? (
+        <p className="text-sm text-foreground-muted">
+          No hay operaciones que coincidan con el filtro.
+        </p>
+      ) : (
+        <>
       <div className="flex flex-col gap-3 md:hidden">
         {visibles.map((trade) => (
           <div key={trade.id} className="rounded-xl border border-border bg-surface p-4">
@@ -246,6 +315,8 @@ function TablaOperacionesCerradas({
         colapsar={colapsar}
         irAPagina={irAPagina}
       />
+        </>
+      )}
     </div>
   );
 }
@@ -254,10 +325,14 @@ function TablaPlazosFijos() {
   const { plazosFijos, loading, error, liquidarPlazoFijo } = usePlazosFijos();
   const { refrescar } = useCuentas();
   const [liquidandoId, setLiquidandoId] = useState<string | null>(null);
+  const [moneda, setMoneda] = useState<FiltroMoneda>("todas");
 
   const vencidos = plazosFijos
     .filter((pf) => plazoFijoVencido(pf.fechaVencimiento))
     .sort((a, b) => b.fechaVencimiento.localeCompare(a.fechaVencimiento));
+
+  const filtrados =
+    moneda === "todas" ? vencidos : vencidos.filter((pf) => pf.divisa === moneda);
 
   const {
     visibles,
@@ -270,7 +345,7 @@ function TablaPlazosFijos() {
     verMas,
     colapsar,
     irAPagina,
-  } = useListaPaginada(vencidos, { conMinimizar: true });
+  } = useListaPaginada(filtrados, { conMinimizar: true });
 
   const liquidar = async (id: string) => {
     setLiquidandoId(id);
@@ -305,6 +380,19 @@ function TablaPlazosFijos() {
 
   return (
     <div className="flex flex-col gap-3">
+      <FiltroChips
+        opciones={OPCIONES_MONEDA}
+        value={moneda}
+        onChange={setMoneda}
+        ariaLabel="Filtrar por moneda"
+      />
+
+      {filtrados.length === 0 ? (
+        <p className="text-sm text-foreground-muted">
+          No hay plazos fijos vencidos en {moneda}.
+        </p>
+      ) : (
+        <>
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full min-w-[700px] text-sm">
           <thead>
@@ -371,6 +459,8 @@ function TablaPlazosFijos() {
         colapsar={colapsar}
         irAPagina={irAPagina}
       />
+        </>
+      )}
     </div>
   );
 }
@@ -503,6 +593,7 @@ export default function HistorialPage() {
           tipoActivo="acciones"
           subTipoActivo="usd"
           mensajeVacio="No tiene operaciones cerradas de Acciones en el historial."
+          filtroResultado
         />
       )}
       {tab === "cedears" && (
@@ -511,6 +602,7 @@ export default function HistorialPage() {
           tipoActivo="acciones"
           subTipoActivo="cedear"
           mensajeVacio="No tiene operaciones cerradas de CEDEARs en el historial."
+          filtroResultado
         />
       )}
       {tab === "crypto-futuros" && (
@@ -519,6 +611,8 @@ export default function HistorialPage() {
           tipoActivo="crypto"
           subTipoActivo="futuros"
           mensajeVacio="No tiene operaciones cerradas de Cripto futuros en el historial."
+          filtroResultado
+          filtroDireccion
         />
       )}
       {tab === "crypto-spot" && (
@@ -527,6 +621,7 @@ export default function HistorialPage() {
           tipoActivo="crypto"
           subTipoActivo="spot"
           mensajeVacio="No tiene operaciones cerradas de Cripto spot en el historial."
+          filtroResultado
         />
       )}
       {tab === "plazos-fijos" && <TablaPlazosFijos />}

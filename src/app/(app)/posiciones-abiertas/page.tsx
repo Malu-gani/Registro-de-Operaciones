@@ -6,8 +6,23 @@ import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
+import { FiltroChips } from "@/components/FiltroChips";
 import { calcularPnl, plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, Trade, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
+
+type FiltroDireccion = "todas" | "long" | "short";
+const OPCIONES_DIRECCION = [
+  { value: "todas", label: "Todas" },
+  { value: "long", label: "Long" },
+  { value: "short", label: "Short" },
+] as const;
+
+type FiltroMoneda = "todas" | "ARS" | "USD";
+const OPCIONES_MONEDA = [
+  { value: "todas", label: "Todas" },
+  { value: "ARS", label: "ARS" },
+  { value: "USD", label: "USD" },
+] as const;
 
 const formatoUSD = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -220,13 +235,17 @@ function TablaOperacionesAbiertas({
   tipoActivo,
   subTipoActivo,
   mensajeVacio,
+  filtroDireccion = false,
 }: {
   tipoActivo: TipoActivo;
   subTipoActivo?: SubTipoAccion | SubTipoCrypto;
   mensajeVacio: string;
+  /** Muestra chips Long/Short (solo aplica a Cripto futuros). */
+  filtroDireccion?: boolean;
 }) {
   const { trades, loading, error } = useTrades();
   const [tradeACerrar, setTradeACerrar] = useState<Trade | null>(null);
+  const [direccion, setDireccion] = useState<FiltroDireccion>("todas");
 
   const abiertas = trades
     .filter(
@@ -236,6 +255,11 @@ function TablaOperacionesAbiertas({
         (subTipoActivo === undefined || t.subTipoActivo === subTipoActivo)
     )
     .sort((a, b) => b.fechaEntrada.localeCompare(a.fechaEntrada));
+
+  const filtradas =
+    filtroDireccion && direccion !== "todas"
+      ? abiertas.filter((t) => t.tipoOperacion === direccion)
+      : abiertas;
 
   const {
     visibles,
@@ -248,7 +272,7 @@ function TablaOperacionesAbiertas({
     verMas,
     colapsar,
     irAPagina,
-  } = useListaPaginada(abiertas, { conMinimizar: true });
+  } = useListaPaginada(filtradas, { conMinimizar: true });
 
   if (error) {
     return (
@@ -268,6 +292,23 @@ function TablaOperacionesAbiertas({
 
   return (
     <>
+      {filtroDireccion && (
+        <div className="mb-4">
+          <FiltroChips
+            opciones={OPCIONES_DIRECCION}
+            value={direccion}
+            onChange={setDireccion}
+            ariaLabel="Filtrar por dirección"
+          />
+        </div>
+      )}
+
+      {filtradas.length === 0 ? (
+        <p className="text-sm text-foreground-muted">
+          No hay posiciones que coincidan con el filtro.
+        </p>
+      ) : (
+        <>
       <div className="flex flex-col gap-3 md:hidden">
         {visibles.map((trade) => (
           <div key={trade.id} className="rounded-xl border border-border bg-surface p-4">
@@ -391,6 +432,8 @@ function TablaOperacionesAbiertas({
         colapsar={colapsar}
         irAPagina={irAPagina}
       />
+        </>
+      )}
 
       {tradeACerrar && (
         <CerrarOperacionModal
@@ -410,10 +453,14 @@ function diasRestantes(fechaVencimiento: string): number {
 
 function TablaPlazosFijosPendientes() {
   const { plazosFijos, loading, error } = usePlazosFijos();
+  const [moneda, setMoneda] = useState<FiltroMoneda>("todas");
 
   const pendientes = plazosFijos
     .filter((pf) => !plazoFijoVencido(pf.fechaVencimiento))
     .sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento));
+
+  const filtrados =
+    moneda === "todas" ? pendientes : pendientes.filter((pf) => pf.divisa === moneda);
 
   const {
     visibles,
@@ -426,7 +473,7 @@ function TablaPlazosFijosPendientes() {
     verMas,
     colapsar,
     irAPagina,
-  } = useListaPaginada(pendientes, { conMinimizar: true });
+  } = useListaPaginada(filtrados, { conMinimizar: true });
 
   if (error) {
     return (
@@ -450,6 +497,21 @@ function TablaPlazosFijosPendientes() {
 
   return (
     <>
+      <div className="mb-4">
+        <FiltroChips
+          opciones={OPCIONES_MONEDA}
+          value={moneda}
+          onChange={setMoneda}
+          ariaLabel="Filtrar por moneda"
+        />
+      </div>
+
+      {filtrados.length === 0 ? (
+        <p className="text-sm text-foreground-muted">
+          No hay plazos fijos en {moneda} pendientes de vencimiento.
+        </p>
+      ) : (
+        <>
       <div className="flex flex-col gap-3 md:hidden">
         {visibles.map((pf) => (
           <div key={pf.id} className="rounded-xl border border-border bg-surface p-4">
@@ -548,6 +610,8 @@ function TablaPlazosFijosPendientes() {
         colapsar={colapsar}
         irAPagina={irAPagina}
       />
+        </>
+      )}
     </>
   );
 }
@@ -617,6 +681,7 @@ export default function PosicionesAbiertasPage() {
           tipoActivo="crypto"
           subTipoActivo="futuros"
           mensajeVacio="No tiene posiciones abiertas de Cripto futuros en este momento."
+          filtroDireccion
         />
       )}
       {tab === "crypto-spot" && (

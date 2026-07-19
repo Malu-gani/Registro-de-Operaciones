@@ -271,7 +271,9 @@ export default function CuentaPage() {
 
   const [editandoSaldos, setEditandoSaldos] = useState(false);
   const [cuentaAbierta, setCuentaAbierta] = useState<CuentaId | null>(cuentaParam);
-  const [filtroCuenta, setFiltroCuenta] = useState<CuentaId | "todas">("todas");
+  const [filtroCuenta, setFiltroCuenta] = useState<CuentaId | "todas" | "plazos_fijos">(
+    "todas"
+  );
 
   const esPortafolioEspecifico = portafolioActivoId !== TODOS_LOS_PORTAFOLIOS;
   const portafolioActivo = portafolios.find((p) => p.id === portafolioActivoId);
@@ -297,13 +299,23 @@ export default function CuentaPage() {
     return comprometidoPorCuenta(trades, plazosNoLiquidados);
   }, [trades, plazosFijos]);
 
-  const movimientosFiltrados = useMemo(
+  const hayMovimientosPlazo = useMemo(
     () =>
-      filtroCuenta === "todas"
-        ? movimientos
-        : movimientos.filter((m) => m.cuenta === filtroCuenta),
-    [movimientos, filtroCuenta]
+      movimientos.some(
+        (m) => m.tipo === "plazo_apertura" || m.tipo === "plazo_liquidacion"
+      ),
+    [movimientos]
   );
+
+  const movimientosFiltrados = useMemo(() => {
+    if (filtroCuenta === "todas") return movimientos;
+    if (filtroCuenta === "plazos_fijos") {
+      return movimientos.filter(
+        (m) => m.tipo === "plazo_apertura" || m.tipo === "plazo_liquidacion"
+      );
+    }
+    return movimientos.filter((m) => m.cuenta === filtroCuenta);
+  }, [movimientos, filtroCuenta]);
 
   const {
     visibles: movimientosVisibles,
@@ -426,6 +438,9 @@ export default function CuentaPage() {
                     [
                       { id: "todas" as const, label: "Todas" },
                       ...cuentasVisibles.map((c) => ({ id: c.id, label: c.label })),
+                      ...(hayMovimientosPlazo
+                        ? [{ id: "plazos_fijos" as const, label: "Plazos Fijos" }]
+                        : []),
                     ]
                   ).map((f) => (
                     <button
