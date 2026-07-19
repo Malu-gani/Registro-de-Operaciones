@@ -316,7 +316,7 @@ export default function GestionPortafolios() {
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Mis Portafolios</h2>
+        <h2 className="text-sm font-semibold text-foreground">Tus Portafolios</h2>
         <button
           type="button"
           onClick={() => setMostrarCrear(true)}
@@ -336,27 +336,7 @@ export default function GestionPortafolios() {
           Todavía no tiene portafolios cargados.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {/* "Todos los portafolios": vista combinada, sin editar ni borrar. */}
-          <div
-            onClick={() => setPortafolioActivoId(TODOS_LOS_PORTAFOLIOS)}
-            className={`card-hover flex cursor-pointer flex-col gap-2 rounded-xl border bg-surface p-4 ${
-              portafolioActivoId === TODOS_LOS_PORTAFOLIOS
-                ? "border-brand bg-brand/5"
-                : "border-border"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-foreground">
-                Todos los portafolios
-              </span>
-              {portafolioActivoId === TODOS_LOS_PORTAFOLIOS && <IconoCheck />}
-            </div>
-            <p className="text-xs text-foreground-muted">
-              Vista combinada de todos tus portafolios.
-            </p>
-          </div>
-
+        <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))]">
           {portafolios.map((p) => {
             const esActivo = p.id === portafolioActivoId;
             const editando = editandoId === p.id;
@@ -405,7 +385,7 @@ export default function GestionPortafolios() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground-muted">
                     {labelMercado(p.tipoMercado)}
                   </span>
