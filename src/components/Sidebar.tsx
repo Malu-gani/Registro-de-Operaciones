@@ -33,9 +33,23 @@ export default function Sidebar() {
                       : "text-foreground hover:bg-surface-muted"
                   }`}
                 >
-                  {activo && (
-                    <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-brand" />
-                  )}
+                  {/*
+                    La barrita del ítem activo se deja SIEMPRE en el DOM y solo
+                    cambia de color con la clase. Si se renderizara condicional
+                    ({activo && <span/>}), al navegar React tendría que
+                    insertarla/quitarla justo al lado del texto del ítem; cuando
+                    el navegador traduce la página (Google Translate reemplaza
+                    los textos por nodos <font> propios), ese texto ya no es el
+                    nodo que React referencia y el insertBefore explota con
+                    "NotFoundError". Manteniéndola fija, solo se actualiza un
+                    atributo (seguro con la traducción).
+                  */}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute inset-y-1.5 left-0 w-1 rounded-full ${
+                      activo ? "bg-brand" : "bg-transparent"
+                    }`}
+                  />
                   {item.label}
                 </Link>
               ) : (
