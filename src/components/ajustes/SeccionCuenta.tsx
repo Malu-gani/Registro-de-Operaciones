@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { inputClasses, labelClasses } from "@/components/formStyles";
+import { REQUISITOS_PASSWORD_HINT, validarPassword } from "@/utils/passwordPolicy";
 import SeccionAjustes from "./SeccionAjustes";
 
 const supabase = createClient();
@@ -42,8 +43,9 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
       setEstado({ tipo: "error", texto: "Ingresá tu contraseña actual." });
       return;
     }
-    if (nueva.length < 6) {
-      setEstado({ tipo: "error", texto: "La nueva contraseña debe tener al menos 6 caracteres." });
+    const passwordError = validarPassword(nueva);
+    if (passwordError) {
+      setEstado({ tipo: "error", texto: passwordError });
       return;
     }
     if (nueva !== confirmar) {
@@ -115,6 +117,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
           />
         </label>
       </div>
+      <p className="text-xs text-foreground-muted">{REQUISITOS_PASSWORD_HINT}</p>
       <Mensaje estado={estado} />
       <button
         type="button"
