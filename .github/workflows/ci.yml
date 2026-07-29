@@ -7,7 +7,7 @@ on:
 
 jobs:
   rapido:
-    name: Typecheck, lint y tests unitarios
+    name: Typecheck y tests unitarios
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
