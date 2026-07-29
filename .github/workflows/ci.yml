@@ -31,3 +31,45 @@ jobs:
 
       - name: Tests unitarios
         run: npm test
+
+  completo:
+    name: Integración SQL y E2E
+    runs-on: ubuntu-latest
+    # Solo en PRs: levanta Supabase en Docker y construye la app, así que tarda
+    # varios minutos. En cada push alcanza con el job rápido.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # La CLI de Supabase es una devDependency del proyecto (no existe en
+      # winget y así queda fijada la versión): se usa la misma acá que en local.
+      - name: Levantar Supabase local
+        run: npx supabase start
+
+      - name: Aplicar migraciones
+        run: node scripts/aplicar-migraciones.mjs
+
+      - name: Tests de integración SQL
+        run: npm run test:sql
+
+      - name: Instalar navegadores de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests E2E
+        run: npm run test:e2e
+
+      - name: Subir el reporte de Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

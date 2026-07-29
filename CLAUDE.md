@@ -37,6 +37,15 @@ Requiere `.env.local` (no versionado) con `NEXT_PUBLIC_SUPABASE_URL` y
 tiene un proyecto de Supabase creado y configurado (estado en la memoria
 `project-supabase-state`).
 
+## Cómo correr las pruebas
+
+```
+npm test
+```
+
+Corre unitarios y componentes (no necesita Docker). La integración SQL y los
+E2E necesitan Supabase local — ver [`docs/testing.md`](docs/testing.md).
+
 Para probar en el navegador embebido (Claude Browser tools): ya existe
 `.claude/launch.json` con la config `next-dev` (puerto 3000) — usar
 `preview_start` con `name: "next-dev"`.

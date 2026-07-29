@@ -16,3 +16,9 @@ next-env.d.ts
 
 # archivos de ejemplo para probar el importador (locales, no se versionan)
 /test-imports/
+
+# Playwright
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache

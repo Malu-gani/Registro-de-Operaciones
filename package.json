@@ -11,6 +11,7 @@
     "test:watch": "vitest --project unit --project componentes",
     "test:componentes": "vitest run --project componentes",
     "test:sql": "vitest run --project sql",
+    "test:e2e": "playwright test",
     "db:reset": "supabase db reset --no-seed && node scripts/aplicar-migraciones.mjs",
     "db:start": "supabase start",
     "typecheck": "tsc --noEmit"
@@ -26,6 +27,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
