@@ -61,11 +61,16 @@ describe("parseNumeroLocale — regla de separador de miles por locale", () => {
     expect(parseNumeroLocale("1.234", "es-AR")).toBe(1234);
   });
 
-  test.fails("en es-AR, 1.5 sigue siendo decimal (menos de tres dígitos)", () => {
+  // Test de guarda (no de defecto): la regla de 9.6 solo aplica con exactamente
+  // tres dígitos después del punto, así que este caso ya se comporta bien hoy y
+  // debe seguir pasando incluso después de implementar el arreglo de 9.6.
+  test("en es-AR, 1.5 sigue siendo decimal (menos de tres dígitos)", () => {
     expect(parseNumeroLocale("1.5", "es-AR")).toBe(1.5);
   });
 
-  test.fails("en es-AR, 1.2345 sigue siendo decimal (más de tres dígitos)", () => {
+  // Test de guarda (no de defecto): mismo motivo que el anterior, pero con más
+  // de tres dígitos después del punto.
+  test("en es-AR, 1.2345 sigue siendo decimal (más de tres dígitos)", () => {
     expect(parseNumeroLocale("1.2345", "es-AR")).toBeCloseTo(1.2345, 6);
   });
 
