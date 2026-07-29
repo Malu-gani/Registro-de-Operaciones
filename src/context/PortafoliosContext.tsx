@@ -37,8 +37,12 @@ export function PortafoliosProvider({ children }: { children: React.ReactNode })
   const [portafolioActivoId, setPortafolioActivoIdState] =
     useState<string>(TODOS_LOS_PORTAFOLIOS);
 
+  // Carga inicial de portafolios al montar (caso legítimo de useEffect:
+  // sincronizar con Supabase). El fetch va por .then() (async, no marca); lo
+  // único síncrono es el aviso de "Supabase no configurado" de abajo.
   useEffect(() => {
     if (!isSupabaseConfigured) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- aviso de config al montar, ver comentario arriba
       setError(
         "Supabase no está configurado. Complete .env.local con NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY y reinicie el servidor (npm run dev)."
       );

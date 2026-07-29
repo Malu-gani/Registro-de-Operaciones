@@ -51,7 +51,12 @@ export function PlazosFijosProvider({ children }: { children: React.ReactNode })
     }
   }, [portafolioId]);
 
+  // Carga inicial y recarga al cambiar de portafolio activo. Es el caso legítimo
+  // de useEffect: sincronizar con un sistema externo (Supabase) al montar. La
+  // regla lo marca por el setState síncrono del estado de carga/config; la
+  // alternativa sería una librería de data-fetching (SWR), fuera de alcance acá.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch al montar, ver comentario arriba
     cargar();
   }, [cargar]);
 

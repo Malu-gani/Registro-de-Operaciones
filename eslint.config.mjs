@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefactos generados por la CLI de Supabase (`npx supabase start`). No es
+    // código del proyecto y ya está en supabase/.gitignore; ESLint no lee el
+    // .gitignore en flat config, así que hay que ignorarlo acá también.
+    "supabase/.temp/**",
   ]),
 ]);
 

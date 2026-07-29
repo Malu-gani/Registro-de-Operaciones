@@ -35,16 +35,25 @@ export default function AssetAutocomplete({
   const [precioCargando, setPrecioCargando] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (activoSeleccionado && value !== activoSeleccionado.symbol) {
-      setActivoSeleccionado(null);
-      setPrecioActual(null);
-    }
+  // Si el usuario editó el texto y ya no coincide con el activo elegido, el
+  // activo deja de estar seleccionado. React soporta ajustar estado derivado
+  // durante el render (re-renderiza sin llegar a pintar); es la alternativa
+  // recomendada a hacerlo en un useEffect. No hay loop: tras el reset,
+  // activoSeleccionado es null y la condición ya no se cumple.
+  if (activoSeleccionado && value !== activoSeleccionado.symbol) {
+    setActivoSeleccionado(null);
+    setPrecioActual(null);
+  }
 
+  useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     const query = value.trim();
     if (query.length < 2) {
+      // Limpia sugerencias viejas cuando el texto es muy corto. Es parte del
+      // effect legítimo de búsqueda con debounce (sincroniza con la API de
+      // búsqueda); el setState síncrono acá es intencional.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSugerencias([]);
       return;
     }
@@ -69,7 +78,6 @@ export default function AssetAutocomplete({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, tipo, mercado]);
 
   const elegirActivo = async (resultado: AssetSearchResult) => {
