@@ -243,9 +243,10 @@ describe("cerrar_operacion — validaciones", () => {
     expect(error?.message).toMatch(/FECHA_FUTURA/);
   });
 
-  // Defecto 9.4 del spec: solo valida contra current_date, nunca contra
-  // op.fecha_entrada, así que permite cerrar antes de haber abierto.
-  test.fails("rechaza una fecha de salida anterior a la de entrada", async () => {
+  // Defecto 9.4 del spec, ARREGLADO en la migración 016: solo validaba contra
+  // current_date, nunca contra op.fecha_entrada, así que permitía cerrar una
+  // operación antes de haberla abierto.
+  test("rechaza una fecha de salida anterior a la de entrada", async () => {
     const { u, opId } = await conOperacionAbierta();
 
     const { error } = await u.client.rpc("cerrar_operacion", {
@@ -256,6 +257,22 @@ describe("cerrar_operacion — validaciones", () => {
     });
 
     expect(error?.message).toMatch(/FECHA_INVALIDA/);
+  });
+
+  // El borde de esa guarda: cerrar el mismo día que se abrió es legítimo (un
+  // intradía) y tiene que seguir funcionando.
+  test("acepta cerrar el mismo día en que se abrió", async () => {
+    const { u, opId } = await conOperacionAbierta();
+
+    const { error } = await u.client.rpc("cerrar_operacion", {
+      p_op_id: opId,
+      p_precio_salida: 120,
+      p_fecha_salida: "2026-07-01", // la misma fecha de entrada
+      p_cantidad_cerrada: 10,
+    });
+
+    expect(error).toBeNull();
+    expect(await disponibleDe(u, "usd")).toBe(5200);
   });
 
   // Defecto 9.5 del spec — P0, ARREGLADO en la migración 015. Sin guarda sobre

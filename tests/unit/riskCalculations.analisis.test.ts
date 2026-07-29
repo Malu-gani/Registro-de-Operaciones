@@ -236,9 +236,10 @@ describe("plazoFijoVencido", () => {
     expect(plazoFijoVencido("2026-07-27")).toBe(true);
   });
 
-  // Defecto 9.3 del spec: compara contra la fecha UTC, así que a las 22:00 ART
-  // del día 28 ya considera vencido un plazo que vence el 29.
-  test.fails("un plazo que vence mañana NO está vencido a las 22:00 de hoy", () => {
+  // Defecto 9.3 del spec, ARREGLADO: comparaba contra la fecha UTC, así que a
+  // las 22:00 ART del día 28 ya consideraba vencido un plazo que vence el 29.
+  // El huso de la suite está fijado en vitest.config.ts.
+  test("un plazo que vence mañana NO está vencido a las 22:00 de hoy", () => {
     expect(plazoFijoVencido("2026-07-29")).toBe(false);
   });
 });

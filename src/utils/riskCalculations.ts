@@ -252,9 +252,22 @@ export function calcularPlazoFijo(
   const inicio = new Date(`${fechaInicio}T00:00:00`);
   const vencimiento = new Date(inicio);
   vencimiento.setDate(vencimiento.getDate() + plazoDias);
-  const fechaVencimiento = vencimiento.toISOString().slice(0, 10);
 
-  return { interesEstimado, fechaVencimiento };
+  return { interesEstimado, fechaVencimiento: fechaISOLocal(vencimiento) };
+}
+
+/**
+ * "YYYY-MM-DD" del día tal como lo ve el usuario, no en UTC.
+ *
+ * `toISOString()` convierte a UTC antes de recortar, así que en Argentina
+ * (UTC-3) a partir de las 21:00 devuelve la fecha del día siguiente. Las fechas
+ * de este dominio son días de calendario, no instantes: comparar contra la
+ * fecha UTC adelanta un día los vencimientos toda la tarde-noche.
+ */
+export function fechaISOLocal(fecha: Date = new Date()): string {
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
 }
 
 /**
@@ -263,7 +276,11 @@ export function calcularPlazoFijo(
  * vencimiento — no depende de ninguna acción manual del usuario ni de un
  * job en el servidor, se deriva comparando contra la fecha de hoy en cada
  * render.
+ *
+ * La comparación es contra la fecha LOCAL (ver `fechaISOLocal`): con la fecha
+ * UTC, en Argentina un plazo se mostraba como vencido desde las 21:00 del día
+ * anterior.
  */
 export function plazoFijoVencido(fechaVencimiento: string): boolean {
-  return fechaVencimiento <= new Date().toISOString().slice(0, 10);
+  return fechaVencimiento <= fechaISOLocal();
 }

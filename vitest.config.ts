@@ -5,6 +5,12 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
+    // La app es de un usuario argentino y varias reglas del dominio son días de
+    // calendario ("¿venció hoy?", "¿es futura?"), que dependen del huso. Si la
+    // suite corriera con el huso de la máquina, los tests de fecha pasarían en
+    // Buenos Aires y fallarían en CI (UTC). Se fija acá para que la respuesta
+    // sea la misma en todos lados.
+    env: { TZ: "America/Argentina/Buenos_Aires" },
     projects: [
       {
         extends: true,

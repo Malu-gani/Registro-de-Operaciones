@@ -264,8 +264,18 @@ solo test. Cada uno tiene su test correspondiente en la sección 5.
 > de `abrir_operacion`, `cerrar_operacion` y `abrir_plazo_fijo`, más los `check`
 > de columna en `operaciones` (`cantidad > 0`, `precio_entrada > 0`,
 > `precio_salida` nulo o positivo). Los cinco `test.fails` correspondientes
-> pasaron a `test` en el mismo commit. Siguen abiertos: 9.3, 9.4, 9.6, 9.7, 9.8,
-> 9.9 y 9.10.
+> pasaron a `test` en el mismo commit.
+>
+> **9.4 y 9.3 también están ARREGLADOS.** El 9.4, con la migración
+> `016_fecha_salida_no_anterior_a_entrada.sql` (`FECHA_INVALIDA` en
+> `cerrar_operacion`, más el `min` y el mensaje en el modal de cierre). El 9.3,
+> comparando contra la fecha **local** y no contra la UTC (`fechaISOLocal` en
+> `riskCalculations.ts`); de paso el huso de la suite quedó fijado en
+> `vitest.config.ts`, porque si no el test pasaba en Buenos Aires y fallaba en
+> CI. Siguen abiertos: 9.6, 9.7, 9.8, 9.9 y 9.10.
+>
+> **Ojo con la numeración:** el `016` quedó tomado por el arreglo del 9.4, así
+> que el PR de permisos explícitos (9.10) pasa a ser el `017`.
 
 **9.1 — `abrir_operacion` crea dinero con cantidad o precio negativos (P0).**
 `v_costo := (p_cantidad * p_precio_entrada) / greatest(...)`. Con `p_cantidad`
