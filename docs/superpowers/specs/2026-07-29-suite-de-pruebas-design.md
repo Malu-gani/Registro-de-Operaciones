@@ -259,6 +259,14 @@ solo test. Cada uno tiene su test correspondiente en la sección 5.
 > Es el argumento de la suite en una línea: el análisis estático acierta el
 > *dónde* y falla el *cuánto*. Las severidades de abajo ya están corregidas.
 
+> **Estado de los arreglos.** **9.1, 9.2 y 9.5 están ARREGLADOS** por la
+> migración `015_validar_parametros_rpc.sql`: guardas `MONTO_INVALIDO` al inicio
+> de `abrir_operacion`, `cerrar_operacion` y `abrir_plazo_fijo`, más los `check`
+> de columna en `operaciones` (`cantidad > 0`, `precio_entrada > 0`,
+> `precio_salida` nulo o positivo). Los cinco `test.fails` correspondientes
+> pasaron a `test` en el mismo commit. Siguen abiertos: 9.3, 9.4, 9.6, 9.7, 9.8,
+> 9.9 y 9.10.
+
 **9.1 — `abrir_operacion` crea dinero con cantidad o precio negativos (P0).**
 `v_costo := (p_cantidad * p_precio_entrada) / greatest(...)`. Con `p_cantidad`
 negativa, `v_costo` es negativo; la guarda `if v_disponible < v_costo` pasa
