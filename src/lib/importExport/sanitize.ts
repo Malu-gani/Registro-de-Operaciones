@@ -36,7 +36,12 @@ export function buscarColumna(headers: string[], alias: string[]): number {
  * Ignora símbolos de moneda, espacios y el signo se respeta. Devuelve null si
  * no queda un número válido.
  */
-export function parseNumeroLocale(valor: string | number | undefined | null): number | null {
+export type LocaleNumero = "es-AR" | "en-US";
+
+export function parseNumeroLocale(
+  valor: string | number | undefined | null,
+  _locale: LocaleNumero = "en-US"
+): number | null {
   if (valor === null || valor === undefined) return null;
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
 
