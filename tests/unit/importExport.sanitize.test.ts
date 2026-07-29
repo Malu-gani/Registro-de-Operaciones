@@ -57,8 +57,18 @@ describe("parseNumeroLocale — formatos que ya funcionan", () => {
 // es-AR, "1.234" es mil doscientos treinta y cuatro. La regla se aplica por
 // locale para no romper precios cripto de tres decimales en archivos en-US.
 describe("parseNumeroLocale — regla de separador de miles por locale", () => {
-  test.fails("en es-AR, 1.234 es mil doscientos treinta y cuatro", () => {
+  test("en es-AR, 1.234 es mil doscientos treinta y cuatro", () => {
     expect(parseNumeroLocale("1.234", "es-AR")).toBe(1234);
+  });
+
+  test("en es-AR, varios grupos de miles también se juntan", () => {
+    expect(parseNumeroLocale("1.234.567", "es-AR")).toBe(1234567);
+  });
+
+  // Guarda contra el riesgo del arreglo: una parte entera en cero nunca es
+  // miles, y sí es la forma de una cantidad cripto.
+  test("en es-AR, 0.003 sigue siendo decimal", () => {
+    expect(parseNumeroLocale("0.003", "es-AR")).toBeCloseTo(0.003, 6);
   });
 
   // Test de guarda (no de defecto): la regla de 9.6 solo aplica con exactamente
@@ -107,10 +117,22 @@ describe("parseFecha", () => {
     }
   );
 
-  // Defecto 9.7 del spec: valida rangos pero no el calendario, así que devuelve
-  // una fecha inexistente que Postgres rechaza después con un error crudo.
-  test.fails("una fecha inexistente devuelve null en vez de 2026-02-31", () => {
+  // Defecto 9.7 del spec, ARREGLADO: validaba rangos pero no el calendario, así
+  // que devolvía una fecha inexistente que Postgres rechazaba después con un
+  // error crudo, en medio de la importación.
+  test("una fecha inexistente devuelve null en vez de 2026-02-31", () => {
     expect(parseFecha("31/02/2026")).toBeNull();
+  });
+
+  test.each([
+    ["31/04/2026", null], // abril tiene 30
+    ["29/02/2025", null], // 2025 no es bisiesto
+  ])("%s no existe y devuelve null", (entrada, esperado) => {
+    expect(parseFecha(entrada)).toBe(esperado);
+  });
+
+  test("el 29 de febrero de un año bisiesto sí existe", () => {
+    expect(parseFecha("29/02/2028")).toBe("2028-02-29");
   });
 });
 

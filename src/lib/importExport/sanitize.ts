@@ -35,12 +35,25 @@ export function buscarColumna(headers: string[], alias: string[]): number {
  *  - "1234.56" / "1234,56" / "1234"                 -> 1234.56 / 1234.56 / 1234
  * Ignora símbolos de moneda, espacios y el signo se respeta. Devuelve null si
  * no queda un número válido.
+ *
+ * El caso ambiguo es un punto solo, sin coma: "1.234". En un archivo en-US son
+ * mil doscientos treinta y cuatro milésimas; en uno es-AR, mil doscientos
+ * treinta y cuatro. No se puede acertar sin saber de dónde viene el archivo,
+ * así que lo decide el `locale` que pasa cada parser: IOL exporta en es-AR,
+ * Bitget y el formato propio usan el punto como decimal.
  */
 export type LocaleNumero = "es-AR" | "en-US";
 
+/**
+ * Punto usado como separador de miles: grupos de exactamente tres dígitos y una
+ * parte entera que no arranca en cero. Deja afuera a propósito los decimales
+ * que un archivo cripto sí puede traer ("0.003", "1.5", "1.2345").
+ */
+const MILES_CON_PUNTO = /^-?[1-9]\d{0,2}(\.\d{3})+$/;
+
 export function parseNumeroLocale(
   valor: string | number | undefined | null,
-  _locale: LocaleNumero = "en-US"
+  locale: LocaleNumero = "en-US"
 ): number | null {
   if (valor === null || valor === undefined) return null;
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
@@ -68,8 +81,11 @@ export function parseNumeroLocale(
   } else if (tieneComa) {
     // solo coma: tratarla como decimal (1234,56 -> 1234.56)
     s = s.replace(",", ".");
+  } else if (tienePunto && locale === "es-AR" && MILES_CON_PUNTO.test(s)) {
+    // solo punto, en un archivo es-AR: es separador de miles (1.234 -> 1234)
+    s = s.replace(/\./g, "");
   }
-  // solo punto o sin separadores: ya está en formato JS
+  // el resto (solo punto en en-US, o sin separadores) ya está en formato JS
 
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
@@ -111,13 +127,33 @@ export function parseFecha(
   return null;
 }
 
-/** Valida rangos y arma "YYYY-MM-DD" con ceros a la izquierda. Null si inválida. */
+/**
+ * Valida el día contra el calendario real y arma "YYYY-MM-DD" con ceros a la
+ * izquierda. Null si la fecha no existe.
+ *
+ * No alcanza con validar los rangos por separado (mes 1-12, día 1-31): así
+ * pasaban "31/02/2026" o "31/04/2026", que después Postgres rechazaba con un
+ * error crudo en medio de la importación en vez de marcar esa fila. El
+ * round-trip por `Date` lo resuelve: si el día no existe, JavaScript lo corre
+ * al mes siguiente y los componentes ya no coinciden.
+ */
 function armarFecha(anio: string, mes: string, dia: string): string | null {
   const y = Number(anio);
   const m = Number(mes);
   const d = Number(dia);
   if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
   if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+  // UTC para que no dependa del huso de quien corre la importación.
+  const fecha = new Date(Date.UTC(y, m - 1, d));
+  if (
+    fecha.getUTCFullYear() !== y ||
+    fecha.getUTCMonth() !== m - 1 ||
+    fecha.getUTCDate() !== d
+  ) {
+    return null;
+  }
+
   const mm = String(m).padStart(2, "0");
   const dd = String(d).padStart(2, "0");
   return `${y}-${mm}-${dd}`;

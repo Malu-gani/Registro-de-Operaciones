@@ -272,7 +272,15 @@ solo test. Cada uno tiene su test correspondiente en la sección 5.
 > comparando contra la fecha **local** y no contra la UTC (`fechaISOLocal` en
 > `riskCalculations.ts`); de paso el huso de la suite quedó fijado en
 > `vitest.config.ts`, porque si no el test pasaba en Buenos Aires y fallaba en
-> CI. Siguen abiertos: 9.6, 9.7, 9.8, 9.9 y 9.10.
+> CI.
+>
+> **9.6 y 9.7 también están ARREGLADOS**, en `sanitize.ts`. El 9.6, con la regla
+> de miles aplicada **por locale**: el parser de IOL pasa `"es-AR"` y ahí un
+> punto solo entre grupos de tres dígitos es separador de miles; Bitget y el
+> formato propio siguen en `"en-US"`, así que no se rompen las cantidades cripto
+> con decimales. El 9.7, validando la fecha contra el calendario real (round-trip
+> por `Date` en UTC), no solo los rangos de mes y día. Siguen abiertos: 9.8, 9.9
+> y 9.10.
 >
 > **Ojo con la numeración:** el `016` quedó tomado por el arreglo del 9.4, así
 > que el PR de permisos explícitos (9.10) pasa a ser el `017`.

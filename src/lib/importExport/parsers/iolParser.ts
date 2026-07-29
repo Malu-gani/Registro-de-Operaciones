@@ -76,8 +76,10 @@ function mapear(tabla: TablaCruda, indices?: IndicesColumnas): ResultadoParseo {
     const nroFila = i + 1;
     const fecha = parseFecha(celdas[idx.fecha], true);
     const lado = parseLado(celdas[idx.operacion]);
-    const cantidad = parseNumeroLocale(celdas[idx.cantidad]);
-    const precio = parseNumeroLocale(celdas[idx.precio]);
+    // es-AR: IOL exporta con formato argentino, así que un punto solo es
+    // separador de miles ("1.234" son mil doscientos treinta y cuatro pesos).
+    const cantidad = parseNumeroLocale(celdas[idx.cantidad], "es-AR");
+    const precio = parseNumeroLocale(celdas[idx.precio], "es-AR");
     const activo = limpiarSimbolo(celdas[idx.simbolo]);
 
     if (!fecha) return void errores.push({ fila: nroFila, motivo: "Fecha inválida o vacía." });

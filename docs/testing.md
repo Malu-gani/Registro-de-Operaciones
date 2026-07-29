@@ -66,8 +66,13 @@ el mismo commit.
 `react-hooks/set-state-in-effect` (los 4 contexts y `AssetAutocomplete`), todos
 preexistentes en `main` y ajenos a la suite: son `useEffect` que llaman a
 `cargar()`, que a su vez hace `setState` de forma síncrona. Se arreglan en un PR
-aparte y recién ahí se suma el paso al workflow. Hay además un warning esperado
-por el parámetro `_locale` de `sanitize.ts`, que es deliberado (ver defecto 9.6).
+aparte y recién ahí se suma el paso al workflow.
+
+Cuando se sume, ojo con un detalle: `npm run lint` sin argumentos también recorre
+`supabase/.temp/`, que es un artefacto local que deja `supabase start` y trae
+más de 150 errores de código minificado ajeno. Hay que agregarlo a los
+`globalIgnores` de `eslint.config.mjs`. Sobre `src` y `tests`, los errores reales
+son 5.
 
 ## Qué NO se prueba automatizado
 
