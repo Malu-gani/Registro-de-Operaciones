@@ -17,16 +17,19 @@ import { join } from "node:path";
 const DIR = "supabase";
 
 /**
- * Las migraciones se aplican como `supabase_admin`, no como `postgres`.
+ * Las migraciones se aplican como `postgres`, el rol real con el que el dueño
+ * corre el SQL a mano (y con el que se reconstruye cualquier base limpia).
  *
- * En el esquema public conviven dos juegos de permisos por defecto: los que
- * otorga supabase_admin dan arwdDxtm a anon/authenticated/service_role, y los
- * que otorga postgres dan solo Dxtm — sin SELECT/INSERT/UPDATE/DELETE. Como el
- * esquema del repo nunca hace GRANT explícito (hereda el default del entorno),
- * crear las tablas como postgres las deja ilegibles para los usuarios logueados
- * y todo falla con "permission denied", antes incluso de llegar a RLS.
+ * Antes acá se usaba `supabase_admin` como atajo: sus "default privileges" le
+ * dan arwdDxtm a anon/authenticated/service_role en toda tabla nueva, tapando
+ * que el esquema nunca hacía GRANT explícito. Con `postgres` las tablas nacen
+ * con solo Dxtm y sin SELECT/INSERT/UPDATE/DELETE, así que la app quedaba
+ * ilegible con "permission denied" antes de llegar a RLS. La migración
+ * `017_grants_explicitos.sql` volvió explícitos esos permisos, así que ya se
+ * puede aplicar con el rol de verdad —que es la prueba de que el repo es
+ * autosuficiente para recrear su base (defecto 9.10 del spec de la suite).
  */
-const USUARIO_DB = "supabase_admin";
+const USUARIO_DB = "postgres";
 
 /** El contenedor se llama supabase_db_<project_id>, definido en config.toml. */
 function nombreContenedor() {
