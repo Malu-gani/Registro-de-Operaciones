@@ -274,6 +274,25 @@ sobre `p_precio_salida`. En un Short, `(precio_entrada - p_precio_salida)` con
 salida negativa infla el P&L arbitrariamente y acredita ese monto al
 disponible.
 
+*Medido contra la base local el 2026-07-29 (tarea 11), cerrando a −1000 una
+posición de 10 unidades abierta a 100 con 4900 de disponible:*
+
+| Dirección | Disponible después | Error devuelto |
+|---|---|---|
+| Short | **16.000** (+11.100 de la nada) | ninguno |
+| Long | **−6.000** | ninguno |
+
+El caso Long agrega un agravante que no estaba previsto: **el disponible queda
+negativo**. Toda la lógica de `FONDOS_INSUFICIENTES` existe para que una cuenta
+nunca baje de cero, y este camino la esquiva por completo. Sea cual sea la
+guarda que se agregue sobre `p_precio_salida`, conviene además **verificar la
+invariante `disponible >= 0`** en la tarea 13, porque es la propiedad que el
+sistema promete y acá se rompe.
+
+Nota: `cerrar_operacion` **sí** valida `p_cantidad_cerrada` (rechaza 0, negativos
+y valores mayores a la posición con `CANTIDAD_INVALIDA`). No es una función sin
+guardas: le falta una.
+
 **9.6 — `parseNumeroLocale` interpreta `"1.234"` como 1,234 (P1).** Con un solo
 punto y sin coma, asume formato JS.
 
