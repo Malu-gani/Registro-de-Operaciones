@@ -839,11 +839,15 @@ describe("parseNumeroLocale — regla de separador de miles por locale", () => {
     expect(parseNumeroLocale("1.234", "es-AR")).toBe(1234);
   });
 
-  test.fails("en es-AR, 1.5 sigue siendo decimal (menos de tres dígitos)", () => {
+  // Tests de GUARDA, no de defecto: la regla de miles aplica solo con
+  // exactamente tres dígitos después del punto, así que estos dos casos
+  // quedan fuera de ella y ya se comportan bien hoy. Existen para que el
+  // arreglo futuro de 9.6 no los rompa. No convertirlos en test.fails.
+  test("en es-AR, 1.5 sigue siendo decimal (menos de tres dígitos)", () => {
     expect(parseNumeroLocale("1.5", "es-AR")).toBe(1.5);
   });
 
-  test.fails("en es-AR, 1.2345 sigue siendo decimal (más de tres dígitos)", () => {
+  test("en es-AR, 1.2345 sigue siendo decimal (más de tres dígitos)", () => {
     expect(parseNumeroLocale("1.2345", "es-AR")).toBeCloseTo(1.2345, 6);
   });
 
@@ -870,7 +874,7 @@ describe("parseFecha", () => {
   });
 
   test("con diaPrimero=false interpreta mm/dd/yyyy", () => {
-    expect(parseFecha("07/01/2026", false)).toBe("2026-01-07");
+    expect(parseFecha("07/01/2026", false)).toBe("2026-07-01");
   });
 
   test.each([["", null], ["no es fecha", null], ["13/13/2026", null]])(
@@ -949,12 +953,12 @@ export function parseNumeroLocale(
 ```
 
 El cuerpo de la función no se toca. El parámetro queda declarado y sin uso, que
-es exactamente lo que hace fallar a los tres `test.fails` de es-AR.
+es exactamente lo que hace fallar al `test.fails` de la regla de miles es-AR.
 
 - [ ] **Step 3: Correr el test**
 
 Run: `npm test -- importExport.sanitize`
-Expected: PASS, con los cuatro `test.fails` fallando como se espera.
+Expected: PASS, con los dos `test.fails` restantes (9.6 y 9.7) fallando como se espera.
 
 - [ ] **Step 4: Verificar que TypeScript sigue limpio**
 
@@ -1476,7 +1480,7 @@ en tiempo de llamada, no lo captura al importar).
 - [ ] **Step 5: Correr la suite unitaria entera**
 
 Run: `npm test`
-Expected: PASS, con los siete `test.fails` de las tareas 2 y 4 fallando como se
+Expected: PASS, con los cinco `test.fails` de las tareas 2 y 4 fallando como se
 espera.
 
 - [ ] **Step 6: Commit**
@@ -3986,7 +3990,7 @@ necesitan Supabase local — ver [`docs/testing.md`](docs/testing.md).
 npm run typecheck && npm run lint && npm test && npm run test:sql && npm run test:e2e
 ```
 
-Expected: todo verde, con los siete `test.fails` fallando como corresponde.
+Expected: todo verde, con los cinco `test.fails` fallando como corresponde.
 
 - [ ] **Step 5: Commit y abrir el PR**
 
