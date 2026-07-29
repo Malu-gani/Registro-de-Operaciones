@@ -60,19 +60,20 @@ de un defecto todavía sin arreglar. Cada uno referencia su ítem en la sección
 del spec. Cuando el defecto se arregla, el test pasa de `test.fails` a `test` en
 el mismo commit.
 
-## Deuda conocida: lint fuera del CI
+## Lint
 
-`npm run lint` todavía no corre en CI. Falla con 5 errores de
-`react-hooks/set-state-in-effect` (los 4 contexts y `AssetAutocomplete`), todos
-preexistentes en `main` y ajenos a la suite: son `useEffect` que llaman a
-`cargar()`, que a su vez hace `setState` de forma síncrona. Se arreglan en un PR
-aparte y recién ahí se suma el paso al workflow.
+`npm run lint` corre en el job rápido del CI (entre el typecheck y los tests
+unitarios) y termina en cero errores. Dos detalles del setup:
 
-Cuando se sume, ojo con un detalle: `npm run lint` sin argumentos también recorre
-`supabase/.temp/`, que es un artefacto local que deja `supabase start` y trae
-más de 150 errores de código minificado ajeno. Hay que agregarlo a los
-`globalIgnores` de `eslint.config.mjs`. Sobre `src` y `tests`, los errores reales
-son 5.
+- ESLint ignora `supabase/.temp/**` (`globalIgnores` en `eslint.config.mjs`): es
+  un artefacto que deja `supabase start`, código minificado ajeno que sumaba más
+  de 150 errores falsos. No se versiona.
+- Los fetch-al-montar de los 4 contexts (`Cuentas`, `Trades`, `PlazosFijos`,
+  `Portafolios`) llevan un `eslint-disable-next-line
+  react-hooks/set-state-in-effect` justificado: son el caso legítimo de
+  `useEffect` (sincronizar con Supabase al montar), no un anti-patrón. En cambio
+  `AssetAutocomplete` sí tenía uno real —reseteaba estado derivado en un
+  effect— y se corrigió moviéndolo a la fase de render.
 
 ## Qué NO se prueba automatizado
 
