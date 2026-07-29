@@ -76,9 +76,10 @@ describe("casos borde del cálculo", () => {
     ).toThrow(/precio de entrada/);
   });
 
-  // Defecto 9.9 del spec: `if (precioStopLoss)` trata el 0 como "sin stop loss",
-  // así que un SL de 0 se ignora en silencio en vez de validarse.
-  test.fails("un Stop Loss de 0 en un Short se rechaza por dirección", () => {
+  // Defecto 9.9 del spec, ARREGLADO: `if (precioStopLoss)` trataba el 0 como
+  // "sin stop loss", así que un SL de 0 se ignoraba en silencio en vez de
+  // validarse. Ahora los precios opcionales se chequean contra `undefined`.
+  test("un Stop Loss de 0 en un Short se rechaza por dirección", () => {
     expect(() =>
       analizarRiesgoPosicionFija({
         precioEntrada: 100,
@@ -173,11 +174,23 @@ describe("calcularRatioRiesgoBeneficio", () => {
     expect(calcularRatioRiesgoBeneficio(100, 90, 130)).toBe(3);
   });
 
-  // Defecto 9.8 del spec: esta función devuelve 0 cuando el riesgo es cero,
-  // mientras el núcleo de cálculo lanza error para el mismo caso.
-  // `financial-logic.md` documenta el error.
-  test.fails("con Stop Loss igual a la entrada lanza error, igual que el núcleo", () => {
+  // Defecto 9.8 del spec, ARREGLADO: esta función devolvía 0 cuando el riesgo
+  // era cero, mientras el núcleo de cálculo lanza error para el mismo caso.
+  // `financial-logic.md` documenta el error. Ahora delega en el núcleo.
+  test("con Stop Loss igual a la entrada lanza error, igual que el núcleo", () => {
     expect(() => calcularRatioRiesgoBeneficio(100, 100, 130)).toThrow();
+  });
+
+  // La otra cara del mismo defecto: con Math.abs, un Stop Loss del lado
+  // equivocado daba un R:R lindo en vez de un error.
+  test("un Stop Loss por encima de la entrada en un Long se rechaza", () => {
+    expect(() => calcularRatioRiesgoBeneficio(100, 110, 130)).toThrow(
+      /Long.*Stop Loss debe ser menor/
+    );
+  });
+
+  test("con la dirección Short, valida contra el lado que corresponde", () => {
+    expect(calcularRatioRiesgoBeneficio(100, 110, 70, "short")).toBe(3);
   });
 });
 

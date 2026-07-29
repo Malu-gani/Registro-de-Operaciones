@@ -279,8 +279,16 @@ solo test. Cada uno tiene su test correspondiente en la sección 5.
 > punto solo entre grupos de tres dígitos es separador de miles; Bitget y el
 > formato propio siguen en `"en-US"`, así que no se rompen las cantidades cripto
 > con decimales. El 9.7, validando la fecha contra el calendario real (round-trip
-> por `Date` en UTC), no solo los rangos de mes y día. Siguen abiertos: 9.8, 9.9
-> y 9.10.
+> por `Date` en UTC), no solo los rangos de mes y día.
+>
+> **9.8 y 9.9 también están ARREGLADOS**, en `riskCalculations.ts`. El 9.8,
+> haciendo que `calcularRatioRiesgoBeneficio` **delegue en el núcleo** en vez de
+> repetir la fórmula con `Math.abs`: así la contradicción no puede reaparecer. El
+> 9.9, chequeando los precios opcionales contra `undefined` en vez de por
+> truthiness — y también en los formularios, con el helper `precioOpcional`,
+> porque `precio || undefined` se comía el cero antes de que el núcleo pudiera
+> validarlo. **Solo queda abierto el 9.10** (permisos explícitos, migración
+> `017`).
 >
 > **Ojo con la numeración:** el `016` quedó tomado por el arreglo del 9.4, así
 > que el PR de permisos explícitos (9.10) pasa a ser el `017`.

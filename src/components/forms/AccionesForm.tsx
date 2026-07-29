@@ -10,7 +10,7 @@ import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
-import { mensajeCamposFaltantes } from "./formValidation";
+import { mensajeCamposFaltantes, precioOpcional } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
 import MensajeFondosInsuficientes, { cuentaFaltante } from "./MensajeFondosInsuficientes";
 
@@ -82,8 +82,8 @@ export default function AccionesForm() {
   const analizar = () =>
     analizarRiesgoPosicionFija({
       precioEntrada: precioEntradaNum,
-      precioStopLoss: precioStopLossNum || undefined,
-      precioTakeProfit: precioTakeProfitNum || undefined,
+      precioStopLoss: precioOpcional(precioStopLossNum),
+      precioTakeProfit: precioOpcional(precioTakeProfitNum),
       cantidad: data.cantidad,
       tipoOperacion: "long",
     });
@@ -120,8 +120,8 @@ export default function AccionesForm() {
           tipoOperacion: "long",
           fechaEntrada: data.fechaEntrada,
           precioEntrada: precioEntradaNum,
-          precioStopLoss: precioStopLossNum || undefined,
-          precioTakeProfit: precioTakeProfitNum || undefined,
+          precioStopLoss: precioOpcional(precioStopLossNum),
+          precioTakeProfit: precioOpcional(precioTakeProfitNum),
           cantidad: analysis.tamañoPosicion,
           estado: "abierta",
           ratioRiesgoBeneficio: analysis.ratioRiesgoBeneficio,

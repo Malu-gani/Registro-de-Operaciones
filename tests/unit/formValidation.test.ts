@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { mensajeCamposFaltantes, unirFaltantes } from "@/components/forms/formValidation";
+import {
+  mensajeCamposFaltantes,
+  precioOpcional,
+  unirFaltantes,
+} from "@/components/forms/formValidation";
 
 describe("unirFaltantes", () => {
   test("una lista vacía da cadena vacía", () => {
@@ -26,5 +30,21 @@ describe("mensajeCamposFaltantes", () => {
     expect(mensajeCamposFaltantes(["el activo"])).toBe(
       "Complete los siguientes campos obligatorios: el activo."
     );
+  });
+});
+
+describe("precioOpcional", () => {
+  test("el campo vacío (NaN) es 'sin cargar'", () => {
+    expect(precioOpcional(Number.parseFloat(""))).toBeUndefined();
+  });
+
+  test("un precio cargado se devuelve tal cual", () => {
+    expect(precioOpcional(90)).toBe(90);
+  });
+
+  // El defecto 9.9 del lado del formulario: con `precio || undefined`, el cero
+  // se perdía y el análisis de riesgo nunca llegaba a validarlo.
+  test("el cero es un valor cargado, no un campo vacío", () => {
+    expect(precioOpcional(0)).toBe(0);
   });
 });
