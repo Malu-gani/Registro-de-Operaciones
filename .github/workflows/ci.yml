@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  rapido:
+    name: Typecheck, lint y tests unitarios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # `npm run lint` NO está en el CI todavía: falla con 5 errores
+      # preexistentes de react-hooks/set-state-in-effect en los 4 contexts y
+      # en AssetAutocomplete, que ya venían de `main` y no los introdujo la
+      # suite. Decisión del dueño del repo (2026-07-29): se arreglan en un PR
+      # aparte y recién ahí se suma este paso. Ver docs/testing.md.
+
+      - name: Tests unitarios
+        run: npm test
