@@ -3571,10 +3571,27 @@ test del paso siguiente los necesita. Si el componente además dispara llamadas 
 Supabase al montarse, mockear `@/lib/tradesApi` con `vi.mock` en vez de dejarlo
 salir a la red.
 
-- [ ] **Step 9: Escribir `tests/componentes/CryptoForm.test.tsx`**
+- [x] **Step 9: Escribir `tests/componentes/CryptoForm.test.tsx`** —
+      **DESCARTADO el 2026-07-29, movido a la tarea 15 (E2E).**
 
-Ajustar el wrapper de providers a lo que salga del paso 8; las aserciones son las
-definitivas y salen de la sección 3.1 de `docs/architecture.md`.
+Se aplicó la condición de corte del paso 10 de esta misma tarea. Inspeccionado
+`CryptoForm`, depende de **cuatro** contextos —`TradesContext`, `CuentasContext`,
+portafolios vía `usePortafolioDestino`, y preferencias vía el `RiskPanel` que
+embebe— y monta un `AssetAutocomplete` que **sale a la red al renderizarse**.
+
+Montarlo exigiría cuatro providers más un mock de red: en los hechos sería un
+test de integración de media app disfrazado de test de componente, frágil ante
+cualquier cambio de contexto y lento. Las tres aserciones que interesan
+(direccionalidad Long/Short según Spot o Futuros, el `max` de la fecha de
+entrada, y el mensaje de campos obligatorios) **se cubren mejor end-to-end**, con
+el formulario real y sus datos reales.
+
+Lo que sí quedó cubierto de este paso: `mensajeCamposFaltantes` y
+`unirFaltantes` tienen sus tests unitarios en `tests/unit/formValidation.test.ts`
+—el copy en registro formal está fijado ahí—, y `RiskPanel`, que es el pedazo de
+este formulario con lógica de presentación propia, tiene los suyos.
+
+*Test descartado, conservado para trazabilidad:*
 
 ```tsx
 import { render, screen } from "@testing-library/react";
