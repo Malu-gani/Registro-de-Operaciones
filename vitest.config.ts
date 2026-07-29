@@ -4,8 +4,26 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
-    // Los tests de SQL y E2E tienen su propio comando: `npm test` no los corre.
-    include: ["tests/unit/**/*.test.ts"],
-    environment: "node",
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["tests/unit/**/*.test.ts"],
+          environment: "node",
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "sql",
+          include: ["tests/sql/**/*.test.ts"],
+          environment: "node",
+          // Las RPC van y vuelven por HTTP contra Docker: más lentas que un test puro.
+          testTimeout: 20000,
+          hookTimeout: 30000,
+        },
+      },
+    ],
   },
 });
