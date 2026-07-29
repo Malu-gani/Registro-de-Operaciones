@@ -311,6 +311,30 @@ segunda.
 loss de 0 se ignora en silencio en vez de validarse. Poco probable en acciones,
 posible en cripto de precio muy bajo. Corresponde `!== undefined`.
 
+**9.10 — El esquema no otorga permisos de tabla explícitos (P1, latente).**
+Detectado el 2026-07-29 al levantar el harness (tarea 8). Ni `schema.sql` ni
+ninguna migración hace `grant select, insert, update, delete ... to
+authenticated`: el proyecto **hereda los permisos por defecto del entorno**.
+
+En el proyecto de Supabase en la nube eso funciona hoy, por eso nunca se notó.
+Pero es una dependencia implícita de una configuración que el repo no controla:
+en una base local recién creada, las tablas creadas por el rol `postgres`
+quedan con `Dxtm` para `authenticated` —sin `SELECT`/`INSERT`/`UPDATE`/
+`DELETE`— y **toda la app es invisible para sus propios usuarios**. El error
+que aparece es `permission denied for table portafolios`, que se confunde
+fácil con un problema de RLS siendo otra capa: RLS filtra filas y devuelve un
+resultado vacío; un `GRANT` faltante corta antes y tira error.
+
+Consecuencia real: el repo **no es autosuficiente para recrear la base**. Una
+migración a otro proyecto de Supabase, un cambio en los valores por defecto de
+la plataforma, o un restore desde cero pueden dejar la app rota con un error
+que no señala la causa.
+
+Mitigado en el harness (`scripts/aplicar-migraciones.mjs` aplica como
+`supabase_admin`, que sí hereda el juego completo), **no en el producto**. El
+arreglo de producto son `grant` explícitos por tabla, y va en **PR aparte,
+después de terminar la suite** — ver la nota de numeración en el orden de PRs.
+
 Los defectos 9.1, 9.2 y 9.5 son de la misma familia: **las RPC confían en que
 el cliente manda parámetros sensatos**. La app real siempre los manda bien,
 pero la superficie de ataque es la RPC, no el formulario. El arreglo natural es

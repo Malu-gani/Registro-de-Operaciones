@@ -4068,3 +4068,18 @@ siguientes, por severidad:
 3. **PR del importador** — defectos 9.6 (regla de miles por locale) y 9.7
    (validación de calendario en `parseFecha`).
 4. **PR de coherencia de fórmulas** — defectos 9.8 y 9.9 en `riskCalculations`.
+5. **PR de permisos explícitos de tabla** — defecto 9.10. Migración
+   `016_grants_explicitos.sql` con `grant select, insert, update, delete` por
+   tabla a `authenticated` (y lo que corresponda a `anon` y `service_role`), para
+   que el esquema deje de depender de los permisos por defecto del entorno.
+
+   **Cuidado con la numeración:** el `015` ya queda reservado por el PR 1 de esta
+   lista. Si ese PR se mergea después, renumerar antes de correr nada — dos
+   archivos `015_` distintos rompen el orden del script de migraciones y, peor,
+   el flujo manual del SQL Editor.
+
+   **Cómo verificarlo cuando se haga:** el harness deja de necesitar
+   `supabase_admin`. Es decir, volver `USUARIO_DB` a `postgres` en
+   `scripts/aplicar-migraciones.mjs`, correr `npm run db:reset` y `npm run
+   test:sql`: si el esquema se volvió autosuficiente, sigue en verde. Ese es el
+   criterio de aceptación del PR, y es exactamente el escenario que hoy falla.
