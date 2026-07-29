@@ -53,6 +53,9 @@ function hoyISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const MENSAJE_FECHA_INVALIDA =
+  "La fecha de salida no puede ser anterior a la de entrada.";
+
 function CerrarOperacionModal({
   trade,
   onClose,
@@ -102,6 +105,10 @@ function CerrarOperacionModal({
       setError("La fecha no puede ser futura.");
       return;
     }
+    if (fechaSalida < trade.fechaEntrada) {
+      setError(MENSAJE_FECHA_INVALIDA);
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -115,7 +122,13 @@ function CerrarOperacionModal({
       onClose();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error al cerrar la operación";
-      setError(msg.includes("FECHA_FUTURA") ? "La fecha no puede ser futura." : msg);
+      setError(
+        msg.includes("FECHA_FUTURA")
+          ? "La fecha no puede ser futura."
+          : msg.includes("FECHA_INVALIDA")
+            ? MENSAJE_FECHA_INVALIDA
+            : msg
+      );
       setGuardando(false);
     }
   }
@@ -181,6 +194,7 @@ function CerrarOperacionModal({
           <input
             type="date"
             value={fechaSalida}
+            min={trade.fechaEntrada}
             max={hoyISO()}
             onChange={(e) => setFechaSalida(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
