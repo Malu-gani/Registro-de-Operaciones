@@ -1533,21 +1533,29 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Lint
-        run: npm run lint
+      # `npm run lint` NO está en el CI todavía: falla con 5 errores
+      # preexistentes de react-hooks/set-state-in-effect en los 4 contexts y
+      # en AssetAutocomplete, que ya venían de `main` y no los introdujo la
+      # suite. Decisión del dueño del repo (2026-07-29): se arreglan en un PR
+      # aparte y recién ahí se suma este paso. Ver docs/testing.md.
 
       - name: Tests unitarios
         run: npm test
 ```
 
-- [ ] **Step 2: Verificar localmente los tres comandos**
+- [ ] **Step 2: Verificar localmente los dos comandos del job**
 
 ```bash
-npm run typecheck && npm run lint && npm test
+npm run typecheck && npm test
 ```
 
-Expected: los tres en verde. Si `npm run lint` marca los tests, agregar
-`tests/` a la config de ESLint como entorno de test antes de seguir.
+Expected: los dos en verde.
+
+Correr también `npm run lint` para dejar constancia del estado de la deuda:
+debe salir con los 5 errores conocidos de `react-hooks/set-state-in-effect` más
+el warning esperado del parámetro `_locale`. Si aparece un error **nuevo** que
+no esté en esa lista, pararse y consultarlo: significa que la suite introdujo
+algo.
 
 - [ ] **Step 3: Commit y push**
 
@@ -3961,6 +3969,15 @@ de un defecto todavía sin arreglar. Cada uno referencia su ítem en la sección
 del spec. Cuando el defecto se arregla, el test pasa de `test.fails` a `test` en
 el mismo commit.
 
+## Deuda conocida: lint fuera del CI
+
+`npm run lint` todavía no corre en CI. Falla con 5 errores de
+`react-hooks/set-state-in-effect` (los 4 contexts y `AssetAutocomplete`), todos
+preexistentes en `main` y ajenos a la suite: son `useEffect` que llaman a
+`cargar()`, que a su vez hace `setState` de forma síncrona. Se arreglan en un PR
+aparte y recién ahí se suma el paso al workflow. Hay además un warning esperado
+por el parámetro `_locale` de `sanitize.ts`, que es deliberado (ver defecto 9.6).
+
 ## Qué NO se prueba automatizado
 
 El alcance negativo está en la sección 7 del spec, con su justificación. En
@@ -3987,7 +4004,7 @@ necesitan Supabase local — ver [`docs/testing.md`](docs/testing.md).
 - [ ] **Step 4: Correr la suite completa localmente antes de abrir el PR**
 
 ```bash
-npm run typecheck && npm run lint && npm test && npm run test:sql && npm run test:e2e
+npm run typecheck && npm test && npm run test:sql && npm run test:e2e
 ```
 
 Expected: todo verde, con los cinco `test.fails` fallando como corresponde.
