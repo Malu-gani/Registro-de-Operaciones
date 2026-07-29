@@ -112,7 +112,8 @@ describe("abrir_plazo_fijo", () => {
     expect(plazos).toHaveLength(0);
   });
 
-  test.fails("rechaza el monto negativo con MONTO_INVALIDO y no con un error crudo de Postgres", async () => {
+  // Defecto 9.2 del spec — P3, ARREGLADO en la migración 015.
+  test("rechaza el monto negativo con MONTO_INVALIDO y no con un error crudo de Postgres", async () => {
     const u = await conSaldoARS(1000);
 
     const { error } = await u.client.rpc(
@@ -120,8 +121,8 @@ describe("abrir_plazo_fijo", () => {
       paramsPlazo(u, { p_monto: -100000 })
     );
 
-    // Hoy devuelve: violates check constraint "plazos_fijos_monto_check".
-    // La app no puede traducir eso a un mensaje para el usuario.
+    // Antes devolvía: violates check constraint "plazos_fijos_monto_check",
+    // que la app no puede traducir a un mensaje para el usuario.
     expect(error?.message).toMatch(/MONTO_INVALIDO/);
   });
 });

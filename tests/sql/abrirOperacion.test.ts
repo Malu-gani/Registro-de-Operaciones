@@ -157,11 +157,12 @@ describe("abrir_operacion — validaciones", () => {
     expect(await disponibleDe(u, "usd")).toBe(5000);
   });
 
-  // Defecto 9.1 del spec — P0. Con cantidad negativa, v_costo da negativo, la
-  // guarda de fondos pasa siempre, y `disponible - v_costo` SUMA al saldo.
-  // La RPC es security definer y está otorgada a `authenticated`: cualquier
-  // usuario logueado la llama directo, sin pasar por el formulario.
-  test.fails("rechaza una cantidad negativa en vez de acreditar saldo", async () => {
+  // Defecto 9.1 del spec — P0, ARREGLADO en la migración 015. Con cantidad
+  // negativa, v_costo daba negativo, la guarda de fondos pasaba siempre, y
+  // `disponible - v_costo` SUMABA al saldo (1.000 USD → 101.000 medido). La RPC
+  // es security definer y está otorgada a `authenticated`: cualquier usuario
+  // logueado la llama directo, sin pasar por el formulario.
+  test("rechaza una cantidad negativa en vez de acreditar saldo", async () => {
     const u = await conSaldo("usd", 1000);
 
     const { error } = await u.client.rpc(
@@ -173,7 +174,7 @@ describe("abrir_operacion — validaciones", () => {
     expect(await disponibleDe(u, "usd")).toBe(1000);
   });
 
-  test.fails("rechaza un precio de entrada negativo", async () => {
+  test("rechaza un precio de entrada negativo", async () => {
     const u = await conSaldo("usd", 1000);
 
     const { error } = await u.client.rpc(
@@ -185,11 +186,66 @@ describe("abrir_operacion — validaciones", () => {
     expect(await disponibleDe(u, "usd")).toBe(1000);
   });
 
-  test.fails("rechaza una cantidad de cero", async () => {
+  test("rechaza una cantidad de cero", async () => {
     const u = await conSaldo("usd", 1000);
 
     const { error } = await u.client.rpc("abrir_operacion", params(u, { p_cantidad: 0 }));
 
     expect(error?.message).toMatch(/MONTO_INVALIDO/);
+  });
+});
+
+/**
+ * La guarda de la RPC protege de llamar `abrir_operacion` con basura; estos
+ * checks protegen de CUALQUIER vía de escritura, incluidas las que todavía no
+ * existen. Es la capa que ya tenía `plazos_fijos` y que evitó que el defecto
+ * 9.2 fuera un P0 (migración 015).
+ */
+describe("operaciones — checks de columna", () => {
+  async function insertar(u: UsuarioDePrueba, over: Record<string, unknown>) {
+    return u.client.from("operaciones").insert({
+      portafolio_id: u.portafolioId,
+      activo: "AAPL",
+      tipo_activo: "acciones",
+      sub_tipo_activo: "usd",
+      divisa: "USD",
+      tipo_operacion: "long",
+      fecha_entrada: "2026-07-01",
+      precio_entrada: 100,
+      cantidad: 10,
+      estado: "abierta",
+      ...over,
+    });
+  }
+
+  test("rechaza el insert directo de una cantidad no positiva", async () => {
+    const u = await crearUsuarioDePrueba();
+
+    const { error } = await insertar(u, { cantidad: -5 });
+
+    expect(error?.message).toMatch(/operaciones_cantidad_check/);
+  });
+
+  test("rechaza el insert directo de un precio de entrada no positivo", async () => {
+    const u = await crearUsuarioDePrueba();
+
+    const { error } = await insertar(u, { precio_entrada: 0 });
+
+    expect(error?.message).toMatch(/operaciones_precio_entrada_check/);
+  });
+
+  test("rechaza un precio de salida no positivo, pero acepta que sea nulo", async () => {
+    const u = await crearUsuarioDePrueba();
+
+    const { error: conSalidaInvalida } = await insertar(u, {
+      estado: "cerrada",
+      fecha_salida: "2026-07-05",
+      precio_salida: -1000,
+    });
+    expect(conSalidaInvalida?.message).toMatch(/operaciones_precio_salida_check/);
+
+    // Una operación abierta no tiene precio de salida: el check no la molesta.
+    const { error: abierta } = await insertar(u, { precio_salida: null });
+    expect(abierta).toBeNull();
   });
 });

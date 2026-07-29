@@ -258,10 +258,11 @@ describe("cerrar_operacion — validaciones", () => {
     expect(error?.message).toMatch(/FECHA_INVALIDA/);
   });
 
-  // Defecto 9.5 del spec — P0. Sin guarda sobre p_precio_salida: en un short,
-  // (precio_entrada - p_precio_salida) con salida negativa infla el P&L y
-  // acredita ese monto inexistente al disponible.
-  test.fails("rechaza un precio de salida negativo", async () => {
+  // Defecto 9.5 del spec — P0, ARREGLADO en la migración 015. Sin guarda sobre
+  // p_precio_salida: en un short, (precio_entrada - p_precio_salida) con salida
+  // negativa inflaba el P&L y acreditaba ese monto inexistente al disponible;
+  // en un long lo dejaba NEGATIVO, rompiendo la invariante `disponible >= 0`.
+  test("rechaza un precio de salida negativo", async () => {
     const { u, opId } = await conOperacionAbierta();
 
     const { error } = await u.client.rpc("cerrar_operacion", {
