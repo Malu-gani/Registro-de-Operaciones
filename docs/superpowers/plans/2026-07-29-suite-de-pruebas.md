@@ -4059,10 +4059,23 @@ Los arreglos de los nueve defectos NO están en este plan, a propósito: el PR d
 la suite tiene que ser legible por sí solo. El orden sugerido para los PRs
 siguientes, por severidad:
 
-1. **PR de validación de parámetros en las RPC** — defectos 9.1, 9.2 y 9.5
-   (los tres P0, misma familia). Nueva migración `015_validar_parametros_rpc.sql`
+1. **PR de validación de parámetros en las RPC** — defectos 9.1, 9.5 (los **dos**
+   P0; 9.2 bajó a P3 al medirlo, ver la revisión del 2026-07-29 en la sección 9
+   del spec) y de paso 9.2. Nueva migración `015_validar_parametros_rpc.sql`
    con un bloque de guardas al inicio de `abrir_operacion`, `abrir_plazo_fijo` y
    `cerrar_operacion`. Convierte tres `test.fails` en `test`.
+
+   **Agregar también `check` de columna en `operaciones`** (`cantidad > 0`,
+   `precio_entrada > 0`, `precio_salida > 0` cuando no es null), replicando lo
+   que `plazos_fijos` ya tiene. Esa restricción es exactamente la que evitó que
+   9.2 fuera un P0; su ausencia en `operaciones` es lo que hace que 9.1 sí lo
+   sea. La guarda en la función protege de la llamada directa a la RPC; el
+   `check` protege de cualquier vía de escritura, incluidas las que todavía no
+   existen.
+
+   **Ojo con el orden:** si se agrega el `check` a una tabla que ya tiene datos
+   inválidos, el `ALTER TABLE` falla. Verificar antes con un `select` de filas
+   con `cantidad <= 0` o `precio_entrada <= 0` en la base real.
 2. **PR de fechas** — defecto 9.4 (cierre anterior a la apertura, misma
    migración o una siguiente) y 9.3 (huso horario en `plazoFijoVencido`).
 3. **PR del importador** — defectos 9.6 (regla de miles por locale) y 9.7

@@ -1,6 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { createRequire } from "node:module";
-
 interface Entorno {
   url: string;
   anonKey: string;
@@ -10,44 +7,26 @@ interface Entorno {
 let cache: Entorno | null = null;
 
 /**
- * La CLI de Supabase es una devDependency del proyecto, no un programa global.
- * Se la invoca por su entrypoint de Node en vez de por el nombre `supabase`,
- * así no depende del PATH ni de un `.cmd` de Windows: corre igual acá y en CI.
- */
-function cliSupabase(): string {
-  const require = createRequire(import.meta.url);
-  return require.resolve("supabase/dist/supabase.js");
-}
-
-/**
- * Lee la config de la instancia local con `supabase status`. No se hardcodean
- * las claves: cambian entre versiones de la CLI, y ninguna credencial del
- * proyecto real de Supabase entra en los tests.
+ * Lee la config de la instancia local desde el entorno. Quien la consulta es
+ * `globalSetup.ts`, una sola vez y antes de que arranquen los workers — ver ahí
+ * por qué no se consulta desde cada archivo de test.
+ *
+ * No se hardcodean las claves: cambian entre versiones de la CLI, y ninguna
+ * credencial del proyecto real de Supabase entra en los tests.
  */
 export function entornoSupabase(): Entorno {
   if (cache) return cache;
 
-  let salida: string;
-  try {
-    salida = execFileSync(process.execPath, [cliSupabase(), "status", "-o", "json"], {
-      encoding: "utf8",
-    });
-  } catch (error) {
-    throw new Error(
-      "No se pudo consultar el estado de Supabase local. ¿Corriste `npx supabase start`? " +
-        `Detalle: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-
-  const status = JSON.parse(salida) as Record<string, string>;
-
-  const url = status.API_URL;
-  const anonKey = status.ANON_KEY;
-  const serviceRoleKey = status.SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_TEST_URL;
+  const anonKey = process.env.SUPABASE_TEST_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY;
 
   if (!url || !anonKey || !serviceRoleKey) {
     throw new Error(
-      "No se pudo leer la config de Supabase local. ¿Corriste `npx supabase start`?"
+      "Falta la config de Supabase local en el entorno. Los tests SQL se corren " +
+        "con `npm run test:sql`, que arranca el globalSetup encargado de leerla. " +
+        "Si el error aparece igual, verificá que la instancia esté levantada con " +
+        "`npm run db:start`."
     );
   }
 

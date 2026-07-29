@@ -245,6 +245,20 @@ premia tests de relleno; la priorización de la sección 2 es el criterio real.
 Encontrados leyendo el código para armar este documento, antes de escribir un
 solo test. Cada uno tiene su test correspondiente en la sección 5.
 
+> **Revisión del 2026-07-29, al ejecutarlos por primera vez contra una base
+> real.** Los defectos de esta sección se dedujeron *leyendo* el código.
+> Correrlos cambió dos cosas:
+>
+> - **9.2 baja de P0 a P3.** No crea dinero: un `check` de columna lo frena. Los
+>   **P0 son dos** (9.1 y 9.5), no tres.
+> - **9.5 es peor de lo descrito.** Además de crear dinero en un Short, en un
+>   Long deja el **disponible en negativo**.
+> - **9.10 es nuevo** y no se podía ver leyendo el código: apareció al recrear
+>   la base desde cero.
+>
+> Es el argumento de la suite en una línea: el análisis estático acierta el
+> *dónde* y falla el *cuánto*. Las severidades de abajo ya están corregidas.
+
 **9.1 — `abrir_operacion` crea dinero con cantidad o precio negativos (P0).**
 `v_costo := (p_cantidad * p_precio_entrada) / greatest(...)`. Con `p_cantidad`
 negativa, `v_costo` es negativo; la guarda `if v_disponible < v_costo` pasa
@@ -254,7 +268,31 @@ logueado puede llamarla con parámetros arbitrarios desde `supabase.rpc` sin
 pasar por el formulario. Falta `if p_cantidad <= 0 or p_precio_entrada <= 0
 then raise exception 'MONTO_INVALIDO'`.
 
-**9.2 — `abrir_plazo_fijo` tiene el mismo agujero (P0).** `p_monto` negativo
+**9.2 — `abrir_plazo_fijo` filtra un error crudo de Postgres (P3).**
+**REVISADO el 2026-07-29 al ejecutarlo contra la base real: NO es un P0 y no
+crea dinero.** El diseño lo asumía gemelo del 9.1 por analogía de código, sin
+haberlo ejecutado. Medido: con `p_monto: -100000` sobre un saldo de 1000 ARS, el
+saldo queda en **1000** y no se guarda ningún plazo.
+
+La razón es que `plazos_fijos.monto` tiene `check (monto > 0)` (migración `003`),
+así que el `INSERT` viola la restricción, la transacción se revierte entera y el
+saldo no se toca. **La RPC es igual de descuidada que `abrir_operacion` —tampoco
+valida el parámetro— pero la base la salva.** La asimetría es el dato: las
+columnas `operaciones.cantidad` y `operaciones.precio_entrada` **no tienen ese
+check**, y por eso 9.1 sí crea dinero.
+
+Lo que queda mal es la calidad del rechazo: devuelve
+`violates check constraint "plazos_fijos_monto_check"`, que la app no puede
+traducir a un mensaje para el usuario. Sigue correspondiendo la guarda
+`MONTO_INVALIDO`, pero por consistencia de errores, no por riesgo financiero.
+
+**Consecuencia para el PR de arreglo:** los P0 son **dos** (9.1 y 9.5), no tres.
+Y el arreglo debería incluir **`check` de columna en `operaciones`** replicando
+lo que `plazos_fijos` ya tiene — la guarda en la función protege contra la
+llamada directa a la RPC, pero el `check` protege contra cualquier vía de
+escritura, incluida una futura que todavía no existe.
+
+*Texto original del diseño, conservado para trazabilidad:* `p_monto` negativo
 pasa la validación de fondos y acredita al disponible. `set_saldo_inicial` y
 `registrar_movimiento_cuenta` sí validan el signo; estas dos no.
 
@@ -358,6 +396,13 @@ Los defectos 9.1, 9.2 y 9.5 son de la misma familia: **las RPC confían en que
 el cliente manda parámetros sensatos**. La app real siempre los manda bien,
 pero la superficie de ataque es la RPC, no el formulario. El arreglo natural es
 un bloque de validación de parámetros al inicio de cada función.
+
+Las tres comparten la causa, pero **no la consecuencia**: 9.1 y 9.5 llegan a
+tocar el saldo (P0), 9.2 lo intenta y un `check` de columna lo frena (P3). Esa
+diferencia no está en las funciones sino en el esquema, y es el argumento para
+que el arreglo tenga **dos capas**: la guarda en la función *y* el `check` en la
+columna. Con las dos, el mismo descuido en una función futura tampoco costaría
+dinero.
 
 ## 10. Criterios de éxito
 

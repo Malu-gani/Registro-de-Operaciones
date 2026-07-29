@@ -19,6 +19,10 @@ export default defineConfig({
           name: "sql",
           include: ["tests/sql/**/*.test.ts"],
           environment: "node",
+          // Consulta la config de Supabase local una sola vez, antes de los
+          // workers: la CLI no tolera varias instancias en paralelo (ver el
+          // archivo).
+          globalSetup: ["tests/setup/globalSetup.ts"],
           // Las RPC van y vuelven por HTTP contra Docker: más lentas que un test puro.
           testTimeout: 20000,
           hookTimeout: 30000,
