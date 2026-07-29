@@ -86,22 +86,32 @@ export function getRiskLevel(
 }
 
 /**
- * Calcula el ratio Riesgo/Beneficio (R:R).
- * Fórmula: |TakeProfit - Entrada| / |Entrada - StopLoss|
+ * Ratio Riesgo/Beneficio (R:R): (TakeProfit - Entrada) / (Entrada - StopLoss),
+ * con los signos según la dirección de la operación.
+ *
+ * Delega en el núcleo de cálculo en vez de repetir la fórmula. Antes tenía
+ * implementación propia con `Math.abs`, y eso la hacía contestar distinto que
+ * el núcleo ante los mismos datos: se tragaba un Stop Loss del lado equivocado
+ * (para un Long, uno por encima de la entrada) y devolvía `0` cuando el riesgo
+ * por unidad era cero, donde el núcleo lanza error. Dos respuestas para la
+ * misma pregunta, y `docs/financial-logic.md` documenta la del núcleo.
+ * Delegando, la contradicción no puede volver a aparecer.
  */
 export function calcularRatioRiesgoBeneficio(
   precioEntrada: number,
   precioStopLoss: number,
-  precioTakeProfit: number
+  precioTakeProfit: number,
+  tipoOperacion: "long" | "short" = "long"
 ): number {
-  const riesgoPorUnidad = Math.abs(precioEntrada - precioStopLoss);
-  const recompensaPorUnidad = Math.abs(precioTakeProfit - precioEntrada);
-
-  if (riesgoPorUnidad === 0) {
-    return 0;
-  }
-
-  return recompensaPorUnidad / riesgoPorUnidad;
+  // El tamaño de posición no afecta al R:R (se cancela en la división), así que
+  // se usa 1: acá solo interesan los precios.
+  const { ratioRiesgoBeneficio } = analizarConTamañoPosicion(1, {
+    precioEntrada,
+    precioStopLoss,
+    precioTakeProfit,
+    tipoOperacion,
+  });
+  return ratioRiesgoBeneficio ?? 0;
 }
 
 /**
@@ -129,10 +139,14 @@ function analizarConTamañoPosicion(
   if (!precioEntrada) {
     throw new Error("No se introdujo el precio de entrada.");
   }
-  if (precioStopLoss && precioStopLoss === precioEntrada) {
+  // Los precios opcionales se chequean contra `undefined`, no por truthiness:
+  // un Stop Loss de 0 es un valor cargado (raro pero posible en cripto de
+  // precio muy bajo) y tiene que validarse por dirección, no ignorarse en
+  // silencio como si el usuario no hubiera puesto nada.
+  if (precioStopLoss !== undefined && precioStopLoss === precioEntrada) {
     throw new Error("El precio de Stop Loss no puede ser igual al precio de entrada.");
   }
-  if (precioStopLoss) {
+  if (precioStopLoss !== undefined) {
     const stopLossValido = esLong
       ? precioStopLoss < precioEntrada
       : precioStopLoss > precioEntrada;
@@ -144,7 +158,7 @@ function analizarConTamañoPosicion(
       );
     }
   }
-  if (precioTakeProfit) {
+  if (precioTakeProfit !== undefined) {
     const takeProfitValido = esLong
       ? precioTakeProfit > precioEntrada
       : precioTakeProfit < precioEntrada;
@@ -162,7 +176,7 @@ function analizarConTamañoPosicion(
   let riesgoPorUnidad: number | undefined;
   let perdidaMaximaMonetaria: number | undefined;
   let perdidaMaximaPorcentaje: number | undefined;
-  if (precioStopLoss) {
+  if (precioStopLoss !== undefined) {
     riesgoPorUnidad = esLong
       ? precioEntrada - precioStopLoss
       : precioStopLoss - precioEntrada;
@@ -173,7 +187,7 @@ function analizarConTamañoPosicion(
   let recompensaPorUnidad: number | undefined;
   let gananciaMaximaMonetaria: number | undefined;
   let gananciaMaximaPorcentaje: number | undefined;
-  if (precioTakeProfit) {
+  if (precioTakeProfit !== undefined) {
     recompensaPorUnidad = esLong
       ? precioTakeProfit - precioEntrada
       : precioEntrada - precioTakeProfit;
@@ -182,7 +196,7 @@ function analizarConTamañoPosicion(
   }
 
   const ratioRiesgoBeneficio =
-    riesgoPorUnidad && recompensaPorUnidad
+    riesgoPorUnidad !== undefined && recompensaPorUnidad !== undefined
       ? recompensaPorUnidad / riesgoPorUnidad
       : undefined;
 
