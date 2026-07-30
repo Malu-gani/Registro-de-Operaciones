@@ -54,6 +54,9 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: status.ANON_KEY,
+      // Los mails de confirmación/recuperación construyen su link con este valor.
+      // Debe apuntar al puerto del E2E (3100), no al 3000 del dev del dueño.
+      NEXT_PUBLIC_SITE_URL: BASE_URL,
     },
   },
 });

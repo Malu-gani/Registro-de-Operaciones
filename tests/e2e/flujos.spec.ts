@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
+import { extraerLinkDeAuth, leerUltimoMail } from "./helpers/mail";
 
 /**
  * Los 5 flujos críticos, end-to-end contra la app real y Supabase local.
@@ -27,11 +28,10 @@ async function sinDatosDeMercado(page: Page) {
 }
 
 /**
- * Registra un usuario nuevo y deja activo el portafolio por defecto.
- *
- * El alta redirige a `/login`, pero con la confirmación por email desactivada
- * en local `signUp` ya devuelve sesión, así que el middleware rebota directo a
- * la app. El login explícito se ejercita en el flujo 1.
+ * Registra un usuario nuevo, confirma su email siguiendo el link del atrapa-mails
+ * y deja activo el portafolio por defecto. Con la confirmación por email prendida,
+ * el signup NO devuelve sesión hasta confirmar. El login explícito se ejercita en
+ * el flujo 1.
  */
 async function entrarComoUsuarioNuevo(page: Page): Promise<string> {
   await sinDatosDeMercado(page);
@@ -44,6 +44,11 @@ async function entrarComoUsuarioNuevo(page: Page): Promise<string> {
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.locator('input[name="confirmPassword"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Crear cuenta" }).click();
+
+  // Confirmar: seguir el link del mail. El callback deja la sesión y aterriza
+  // en /dashboard.
+  const cuerpo = await leerUltimoMail(email);
+  await page.goto(extraerLinkDeAuth(cuerpo));
 
   await elegirPortafolioPorDefecto(page);
   return email;
