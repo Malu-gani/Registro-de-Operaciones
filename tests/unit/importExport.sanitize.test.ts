@@ -53,7 +53,7 @@ describe("parseNumeroLocale — formatos que ya funcionan", () => {
   });
 });
 
-// Defecto 9.6 del spec. Decisión del dueño del repo (2026-07-29): en un archivo
+// Defecto 9.6 de docs/testing.md. Decisión del dueño del repo (2026-07-29): en un archivo
 // es-AR, "1.234" es mil doscientos treinta y cuatro. La regla se aplica por
 // locale para no romper precios cripto de tres decimales en archivos en-US.
 describe("parseNumeroLocale — regla de separador de miles por locale", () => {
@@ -117,7 +117,7 @@ describe("parseFecha", () => {
     }
   );
 
-  // Defecto 9.7 del spec, ARREGLADO: validaba rangos pero no el calendario, así
+  // Defecto 9.7 de docs/testing.md, ARREGLADO: validaba rangos pero no el calendario, así
   // que devolvía una fecha inexistente que Postgres rechazaba después con un
   // error crudo, en medio de la importación.
   test("una fecha inexistente devuelve null en vez de 2026-02-31", () => {

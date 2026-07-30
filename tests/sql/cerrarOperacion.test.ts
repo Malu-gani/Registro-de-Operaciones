@@ -243,7 +243,7 @@ describe("cerrar_operacion — validaciones", () => {
     expect(error?.message).toMatch(/FECHA_FUTURA/);
   });
 
-  // Defecto 9.4 del spec, ARREGLADO en la migración 016: solo validaba contra
+  // Defecto 9.4 de docs/testing.md, ARREGLADO en la migración 016: solo validaba contra
   // current_date, nunca contra op.fecha_entrada, así que permitía cerrar una
   // operación antes de haberla abierto.
   test("rechaza una fecha de salida anterior a la de entrada", async () => {
@@ -275,7 +275,7 @@ describe("cerrar_operacion — validaciones", () => {
     expect(await disponibleDe(u, "usd")).toBe(5200);
   });
 
-  // Defecto 9.5 del spec — P0, ARREGLADO en la migración 015. Sin guarda sobre
+  // Defecto 9.5 de docs/testing.md — P0, ARREGLADO en la migración 015. Sin guarda sobre
   // p_precio_salida: en un short, (precio_entrada - p_precio_salida) con salida
   // negativa inflaba el P&L y acreditaba ese monto inexistente al disponible;
   // en un long lo dejaba NEGATIVO, rompiendo la invariante `disponible >= 0`.

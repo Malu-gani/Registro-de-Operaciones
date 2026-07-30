@@ -1,5 +1,5 @@
 -- Permisos (GRANT) explícitos sobre las tablas del esquema public (defecto 9.10
--- del spec de la suite de pruebas).
+-- de docs/testing.md).
 --
 -- El problema: ni schema.sql ni ninguna migración le otorga jamás
 -- select/insert/update/delete a los roles de Supabase (anon, authenticated,

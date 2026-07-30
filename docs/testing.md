@@ -1,10 +1,27 @@
 # Suite de pruebas
 
-Diseño completo y criterio de priorización:
-[`docs/superpowers/specs/2026-07-29-suite-de-pruebas-design.md`](superpowers/specs/2026-07-29-suite-de-pruebas-design.md).
-
 Hoy son **275 pruebas**: 186 unitarias, 18 de componentes, 66 de integración
 contra Postgres y 5 flujos end-to-end.
+
+## Criterio de priorización
+
+Las pruebas se ordenan por **consecuencia de la falla**, no por facilidad de
+escritura. En una app que calcula riesgo, el peor escenario no es que algo se
+rompa: es que devuelva un número plausible y equivocado.
+
+| Nivel | Consecuencia | Dónde vive |
+|---|---|---|
+| **P0** | Se crea, se destruye o se contabiliza mal el dinero. Un usuario ve datos de otro. | Las 6 RPC de `008_funciones_saldos.sql`, políticas RLS |
+| **P1** | Un número mal calculado informa una decisión de trading real. | `riskCalculations.ts`, `cuentas.ts`, FIFO del importador |
+| **P2** | La UI muestra mal algo correcto, o deja cargar algo inválido. | Validación de formularios, `useListaPaginada`, chips de filtro |
+| **P3** | Cosmético: color, espaciado, tema. | Fuera de alcance automatizado |
+
+Regla operativa: ningún test P2 se escribe mientras quede un camino P0 sin
+cubrir. Eso explica la forma de la pirámide — base ancha en unitario y SQL,
+E2E deliberadamente chico.
+
+La cobertura se reporta pero **no es umbral bloqueante**: un mínimo de cobertura
+premia tests de relleno, y el criterio real es esta tabla.
 
 ## Cómo correrla
 
@@ -55,10 +72,50 @@ uno falla con `FileSystem.rename`, tumbando un test al azar.
 
 ## Defectos conocidos
 
-Los tests marcados con `test.fails(...)` describen el comportamiento **correcto**
-de un defecto todavía sin arreglar. Cada uno referencia su ítem en la sección 9
-del spec. Cuando el defecto se arregla, el test pasa de `test.fails` a `test` en
-el mismo commit.
+Los defectos detectados al diseñar la suite se cubrieron con tests escritos
+contra el comportamiento **correcto**, no contra el que tenía la app. Nacen en
+rojo a propósito, marcados con `test.fails(...)`: una suite que nace verde sobre
+un bug lo convierte en especificación. El arreglo va en un PR aparte del de la
+suite, y ahí el test pasa de `test.fails` a `test` en el mismo commit.
+
+Hoy no queda ninguno: los 10 defectos que encontró la suite están arreglados.
+Si aparece uno nuevo, se documenta con esta misma técnica.
+
+### Los 10 defectos
+
+Los IDs `9.x` son los que citan los comentarios de los tests y las cabeceras de
+las migraciones 015–017. Se conservan aunque estén todos cerrados, porque son la
+trazabilidad entre el test, el arreglo y la migración.
+
+| ID | Defecto | Sev. | Arreglo |
+|---|---|---|---|
+| 9.1 | `abrir_operacion` crea dinero con cantidad o precio negativos: el costo da negativo, la guarda `if disponible < costo` pasa siempre y la resta suma. Medido: 1.000 USD → 101.000 en una llamada. | **P0** | 015 |
+| 9.5 | `cerrar_operacion` acepta precio de salida negativo: en un short infla el P&L, en un long deja el disponible en −6.000 y rompe la invariante `disponible >= 0`. | **P0** | 015 |
+| 9.3 | `plazoFijoVencido` compara la fecha local contra UTC: el vencimiento se adelanta o atrasa un día según la hora. | P1 | 015 |
+| 9.6 | `parseNumeroLocale` interpreta `"1.234"` como 1,234 en vez de mil doscientos treinta y cuatro. | P1 | 016 |
+| 9.10 | El esquema no otorga permisos de tabla explícitos. Funcionaba en la nube por herencia del entorno; en una base limpia la app entera es invisible para sus propios usuarios. | P1 (latente) | 017 |
+| 9.4 | `cerrar_operacion` acepta fecha de salida anterior a la de entrada. | P2 | 016 |
+| 9.7 | `parseFecha` acepta fechas inexistentes como `2026-02-31`. | P2 | 016 |
+| 9.8 | `calcularRatioRiesgoBeneficio` contradice al núcleo de cálculo: dos fórmulas distintas para lo mismo. | P2 | 016 |
+| 9.9 | `if (precioStopLoss)` trata el `0` como "sin stop loss". | P2 | 016 |
+| 9.2 | `abrir_plazo_fijo` filtra un error crudo de Postgres a la interfaz. | P3 | 015 |
+
+**Las severidades cambiaron al ejecutarlos.** Los 10 se dedujeron *leyendo* el
+código, antes de escribir un test. Correrlos contra una base real corrigió tres
+cosas: 9.2 bajó de P0 a P3 porque un `check` de columna ya lo frenaba, 9.5
+resultó peor de lo descrito, y 9.10 no se podía ver leyendo — apareció recién al
+recrear la base desde cero. El análisis estático acierta el *dónde* y falla el
+*cuánto*.
+
+Además de validar dentro de las RPC se agregaron `check` de columna en
+`operaciones`, replicando lo que `plazos_fijos` ya tenía y que fue justamente lo
+que evitó que 9.2 fuera grave. Defensa en profundidad: la validación de
+aplicación y la restricción de columna cubren el mismo caso por vías distintas.
+
+**Por qué los P0 importan más de lo que parece.** Las RPC son `security definer`
+y están otorgadas a `authenticated`: cualquier usuario logueado podía llamarlas
+con `supabase.rpc()` directo, salteándose el formulario y toda su validación. La
+validación en el cliente no era una segunda capa, era la única.
 
 ## Lint
 
@@ -77,7 +134,17 @@ unitarios) y termina en cero errores. Dos detalles del setup:
 
 ## Qué NO se prueba automatizado
 
-El alcance negativo está en la sección 7 del spec, con su justificación. En
-resumen: renderizado de Recharts, APIs de mercado reales, Supabase Auth por
-dentro, estilos y regresión visual, vista móvil, el crash de traducción del
-navegador, y concurrencia real entre dos clientes.
+Decidido de antemano y con su razón escrita. Lo que no está acá tampoco está
+cubierto por accidente.
+
+| Qué | Por qué |
+|---|---|
+| Renderizado de Recharts (SVG) | Se testean los `chartUtils` puros que arman los datos. El SVG es código de terceros y la aserción es frágil. |
+| CoinGecko y Yahoo Finance reales | Ningún test toca la red. Se testea `/api/market` con `fetch` mockeado: contrato, símbolo inexistente, timeout, error 5xx. |
+| Supabase Auth por dentro | Código de terceros. Se testea que la app reaccione bien a sus resultados, no su implementación. |
+| Estilos, tema y regresión visual | P3. Alto costo de mantenimiento y el look cambia seguido. |
+| Responsividad y vista móvil | Checklist manual documentado. |
+| Crash de React al traducir con el navegador | No se puede automatizar de forma honesta: depende de que Google Translate reescriba el DOM. Queda como caso manual con pasos de reproducción. |
+| Cada migración por separado | Se prueba el estado final aplicándolas todas en orden, que es el escenario real de despliegue. |
+| Accesibilidad | Fuera de esta suite. Hay hallazgos de Lighthouse pendientes de decisión, que merecen su propio trabajo. |
+| Concurrencia real entre dos clientes sobre la misma cuenta | Las RPC usan `select ... for update`; probar la carrera de verdad requiere orquestación de sesiones que no justifica el costo para una app de un solo usuario. Riesgo aceptado y documentado. |

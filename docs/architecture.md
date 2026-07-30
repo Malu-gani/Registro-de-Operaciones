@@ -33,9 +33,7 @@ Con "Todos los portafolios" activo, Dashboard/Historial muestran datos
 combinados de todos los portafolios del usuario, y `/portafolio` muestra
 una sección completa (tortas + Cuenta de Futuros) por cada portafolio,
 sin mezclar ni sumar entre sí (tampoco se convierten monedas — ARS, USD y
-USDT siempre se muestran desglosados, nunca sumados). Ver detalle de la
-implementación en la sección "Multi-portafolio" del historial de
-sesiones (`CLAUDE.md`).
+USDT siempre se muestran desglosados, nunca sumados).
 
 ### Tabla: `portafolios`
 - `id`
