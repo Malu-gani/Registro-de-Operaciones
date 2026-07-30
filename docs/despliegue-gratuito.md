@@ -11,24 +11,35 @@ recién si algún día la abrieras a desconocidos.
 
 ## Estado del despliegue (2026-07-29)
 
-**Fase A desplegada y verificada.** La app está online, gratis, para uso propio:
+**Fases A y B desplegadas y verificadas.** La app está online y con mails
+propios andando, todo gratis:
 
 - **URL de producción:** https://registro-de-operaciones-chi.vercel.app
 - **Hosting:** Vercel, plan Hobby (gratis). El entorno *Production* sigue la rama
   `main`: cada merge a `main` redeploya solo.
 - **Variables cargadas en Vercel:** `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXT_PUBLIC_SITE_URL` (= la URL de arriba).
-- **Mails:** sin configurar, por diseño (ver Fase A). `Confirm email` apagado.
-
 - **URLs de Supabase:** Site URL y Redirect URLs (`…/**`) ya apuntan a la URL de
   producción.
+- **Mails:** SMTP propio vía Gmail configurado y plantillas con `token_hash`
+  cargadas (ver Fase B). `Confirm email` **apagado** todavía: se prende cuando se
+  sumen otros usuarios.
 
-Verificado en producción: la app carga sin errores de consola;
+**Verificado en producción (Fase A):** la app carga sin errores de consola;
 `NEXT_PUBLIC_SITE_URL` quedó bien tomada en el build (`/auth/confirm` sin token
 redirige al dominio de Vercel, no a `localhost`); el registro de un usuario nuevo
 funciona sin mail (como corresponde con `Confirm email` apagado); y los precios en
 vivo cargan bien desde Vercel, tanto acciones (AAPL / Yahoo Finance) como cripto
 (BTC / CoinGecko).
+
+**Verificado en producción (Fase B):** recuperación de contraseña de punta a
+punta. El mail sale por el SMTP de Gmail, el aviso en pantalla no revela si la
+dirección existe o no (comportamiento buscado), y —lo importante— **el link se
+abrió en otro dispositivo** (celular Android, distinto de la PC que pidió el
+reset): se pudo elegir la contraseña nueva, la sesión quedó abierta en el celular
+y después el login desde la PC funcionó con la contraseña nueva. Eso es lo que
+confirma que el enfoque `token_hash` sirve cross-device, que era el punto del
+diseño (los links PKCE por defecto fallan justo en ese paso).
 
 > **Sobre la anon key:** el proyecto usa el formato nuevo de claves de Supabase
 > (`sb_publishable_...`), que es la reemplazante de la vieja `anon` key y es
@@ -120,10 +131,9 @@ tu propia casilla, no a la de otros).
    - Usuario: tu dirección de Gmail completa.
    - Contraseña: la "contraseña de aplicación" de 16 caracteres del paso 1.
    - Sender email / Sender name: tu Gmail y el nombre que quieras que vean.
-3. **Prendé "Confirm email"** (Authentication → Providers → Email) si querés que
-   los nuevos usuarios confirmen su dirección al registrarse. Opcional, pero
-   recomendado cuando hay más de una persona.
-4. **Plantillas de mail (paso propio de esta app, NO olvidar):** la app usa
+     **El sender email tiene que ser el mismo Gmail que el usuario**, o Gmail
+     rechaza el envío.
+3. **Plantillas de mail (paso propio de esta app, NO olvidar):** la app usa
    plantillas con `token_hash` para que el link del mail funcione desde cualquier
    dispositivo. En **local** viven en `supabase/templates/*.html` (las lee el
    `config.toml`), pero **el proyecto en la nube NO lee ese config**: hay que
@@ -136,7 +146,24 @@ tu propia casilla, no a la de otros).
      (copiá el cuerpo de `supabase/templates/recovery.html`).
    - Si dejás las plantillas por defecto (que usan el link PKCE), la confirmación
      falla al abrir el mail en otro dispositivo. Por eso este paso importa.
-5. **Caveats del Gmail SMTP** (irrelevantes a esta escala, pero para que sepas):
+4. **Probá la recuperación de contraseña ANTES de prender nada más.** Andá a
+   `/forgot-password` en producción, pedí el reset de tu propia cuenta y **abrí el
+   link desde otro dispositivo** (el celular), que es justo el caso que rompen las
+   plantillas por defecto. Confirmá que podés elegir contraseña nueva y después
+   entrar con ella desde la compu.
+   - **Por qué en este orden:** la recuperación no puede dejar a nadie afuera, así
+     que es la prueba segura del SMTP + las plantillas. Si en cambio prendieras
+     `Confirm email` con el SMTP mal configurado, un usuario nuevo se registraría
+     y **nunca podría entrar**, porque no le llegaría el mail de confirmación.
+5. **Prendé "Confirm email"** (Authentication → Providers → Email) recién cuando
+   el paso 4 funcione. No afecta a los usuarios que ya existen (siguen entrando
+   normal): solo obliga a confirmar a los que se registren de ahí en adelante.
+   - **Por qué conviene con más de una persona:** garantiza que la dirección sea
+     real y de quien se registra. Si alguien se equivoca al tipear su email y la
+     confirmación está apagada, entra igual — pero después **la recuperación de
+     contraseña le resulta imposible** (el mail va a una casilla que no controla)
+     y volvés a ser vos la mesa de ayuda.
+6. **Caveats del Gmail SMTP** (irrelevantes a esta escala, pero para que sepas):
    límite de envío de ~500 mails/día, y los correos salen "desde tu Gmail" en vez
    de un dominio propio. Para un puñado de personas conocidas, ningún problema.
 
@@ -147,7 +174,7 @@ queda corto (deliverability, límites, imagen) y conviene un servicio de mail
 transaccional con dominio propio:
 
 1. En Supabase → **Authentication** → prender **"Confirm email"**.
-2. Cargar las mismas **plantillas con `token_hash`** de la Fase B (paso 4).
+2. Cargar las mismas **plantillas con `token_hash`** de la Fase B (paso 3).
 3. **SMTP con Resend:** creá una cuenta en resend.com (free: 100 mails/día,
    3.000/mes). En Supabase → **Authentication → SMTP Settings** cargá los datos
    SMTP de Resend (host `smtp.resend.com`, puerto 587, usuario `resend`, la API
@@ -158,23 +185,26 @@ transaccional con dominio propio:
 
 ## Checklists
 
-**Listo para uso propio (Fase A):**
+**Listo para uso propio (Fase A) — hecho:**
 
-- [ ] `NEXT_PUBLIC_SITE_URL` en Vercel = la URL real de Vercel.
-- [ ] Site URL + Redirect URLs en Supabase apuntan a esa URL.
-- [ ] "Confirm email" apagado.
-- [ ] Probaste registrarte y entrar; sabés que tu contraseña la reseteás desde
+- [x] `NEXT_PUBLIC_SITE_URL` en Vercel = la URL real de Vercel.
+- [x] Site URL + Redirect URLs en Supabase apuntan a esa URL.
+- [x] "Confirm email" apagado.
+- [x] Probaste registrarte y entrar; sabés que tu contraseña la reseteás desde
       Authentication → Users si hace falta.
 
 **Listo para compartir con conocidos (Fase B):**
 
-- [ ] 2FA + "contraseña de aplicación" generada en tu cuenta de Google.
-- [ ] SMTP de Gmail cargado en Supabase (`smtp.gmail.com`:587, tu gmail + la
-      app-password).
-- [ ] "Confirm email" prendido (si querés confirmación al registrarse).
-- [ ] Plantillas de mail (confirmación y recuperación) cargadas con `token_hash`.
-- [ ] Probado de punta a punta: que un conocido se registre, confirme desde el
-      link, y recupere contraseña.
+- [x] 2FA + "contraseña de aplicación" generada en tu cuenta de Google.
+- [x] SMTP de Gmail cargado en Supabase (`smtp.gmail.com`:587, tu gmail + la
+      app-password; sender = el mismo gmail).
+- [x] Plantillas de mail (confirmación y recuperación) cargadas con `token_hash`.
+- [x] Recuperación de contraseña probada de punta a punta, **abriendo el link en
+      otro dispositivo** (celular) y después entrando desde la compu.
+- [ ] "Confirm email" prendido — pendiente, se hace al sumar el primer usuario
+      además de vos.
+- [ ] Registro de un conocido probado de punta a punta (alta + confirmación desde
+      el link del mail).
 
 > Recordá que en local nada de esto hace falta: el `config.toml` ya deja todo
 > listo y los mails los captura el atrapa-mails en `http://127.0.0.1:54324`.
