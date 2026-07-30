@@ -45,10 +45,22 @@ recuperación.
 
 ## Decisión de arquitectura
 
-Reusar el **flujo PKCE** que la app ya tiene (`/auth/callback` +
-`exchangeCodeForSession`) para los dos flujos, en vez de introducir un segundo
-mecanismo (token hash / OTP). Motivo: coherencia con el registro ya existente y
-un solo camino de código que mantener.
+> **Corrección durante la implementación (2026-07-29):** se descartó el flujo
+> PKCE para los mails. El PKCE guarda el `code_verifier` en un cookie del
+> navegador donde se inició, así que la confirmación fallaba al abrir el mail en
+> otro dispositivo (registrás en la compu, confirmás en el cel) o al intentar
+> login antes de confirmar. Se pasó a **`verifyOtp` con `token_hash`**: no
+> depende de cookies previos y el link anda desde cualquier lado. Es el estándar
+> de Supabase para email; el `code`/PKCE queda reservado para OAuth. Implica
+> **plantillas de mail propias** (`supabase/templates/`) que linkean a
+> `/auth/confirm?token_hash=...&type=...`, y un route handler que verifica y
+> setea la sesión sobre la respuesta de redirect.
+
+Se reutiliza el patrón de cookies-sobre-la-respuesta del middleware para que la
+sesión sobreviva al redirect (con el cliente basado en `next/headers`, un
+`NextResponse.redirect` a mano no arrastra las cookies). El redirect se arma con
+`NEXT_PUBLIC_SITE_URL`, no con el `origin` de `request.url` (que `next start`
+puede reportar como `localhost` aunque el navegador esté en otro host).
 
 Rutas nuevas **fuera del grupo `(app)`** (igual que `/login` y `/signup`, sin
 sidebar ni protección de sesión de la app): `/forgot-password` y
