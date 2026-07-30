@@ -147,4 +147,4 @@ cubierto por accidente.
 | Crash de React al traducir con el navegador | No se puede automatizar de forma honesta: depende de que Google Translate reescriba el DOM. Queda como caso manual con pasos de reproducción. |
 | Cada migración por separado | Se prueba el estado final aplicándolas todas en orden, que es el escenario real de despliegue. |
 | Accesibilidad | Fuera de esta suite. Hay hallazgos de Lighthouse pendientes de decisión, que merecen su propio trabajo. |
-| Concurrencia real entre dos clientes sobre la misma cuenta | Las RPC usan `select ... for update`; probar la carrera de verdad requiere orquestación de sesiones que no justifica el costo para una app de un solo usuario. Riesgo aceptado y documentado. |
+| Concurrencia real entre dos sesiones sobre la misma cuenta | Las RPC toman bloqueo de fila (`select ... for update`), así que la garantía existe a nivel del motor. Lo que no se automatiza es *demostrar* la carrera: exige orquestar dos sesiones simultáneas, y el escenario que la produciría —la misma persona operando desde dos pestañas— es poco frecuente frente a ese costo. Riesgo aceptado y documentado. |
