@@ -21,9 +21,9 @@ propios andando, todo gratis:
   `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXT_PUBLIC_SITE_URL` (= la URL de arriba).
 - **URLs de Supabase:** Site URL y Redirect URLs (`…/**`) ya apuntan a la URL de
   producción.
-- **Mails:** SMTP propio vía Gmail configurado y plantillas con `token_hash`
-  cargadas (ver Fase B). `Confirm email` **apagado** todavía: se prende cuando se
-  sumen otros usuarios.
+- **Mails:** SMTP propio vía Gmail, plantillas con `token_hash` cargadas y
+  **`Confirm email` activado** (ver Fase B). La app queda lista para que se
+  registren otras personas.
 
 **Verificado en producción (Fase A):** la app carga sin errores de consola;
 `NEXT_PUBLIC_SITE_URL` quedó bien tomada en el build (`/auth/confirm` sin token
@@ -32,14 +32,22 @@ funciona sin mail (como corresponde con `Confirm email` apagado); y los precios 
 vivo cargan bien desde Vercel, tanto acciones (AAPL / Yahoo Finance) como cripto
 (BTC / CoinGecko).
 
-**Verificado en producción (Fase B):** recuperación de contraseña de punta a
-punta. El mail sale por el SMTP de Gmail, el aviso en pantalla no revela si la
-dirección existe o no (comportamiento buscado), y —lo importante— **el link se
-abrió en otro dispositivo** (celular Android, distinto de la PC que pidió el
-reset): se pudo elegir la contraseña nueva, la sesión quedó abierta en el celular
-y después el login desde la PC funcionó con la contraseña nueva. Eso es lo que
-confirma que el enfoque `token_hash` sirve cross-device, que era el punto del
-diseño (los links PKCE por defecto fallan justo en ese paso).
+**Verificado en producción (Fase B) — los dos flujos de mail:**
+
+- **Recuperación de contraseña.** El mail sale por el SMTP de Gmail, el aviso en
+  pantalla no revela si la dirección existe o no (comportamiento buscado), y —lo
+  importante— **el link se abrió en otro dispositivo** (celular Android, distinto
+  de la PC que pidió el reset): se pudo elegir la contraseña nueva, la sesión
+  quedó abierta en el celular y después el login desde la PC funcionó con la
+  contraseña nueva.
+- **Confirmación de registro**, con `Confirm email` ya activado: alta de un
+  usuario de prueba, rechazo del login mientras estaba sin confirmar (con la
+  opción de reenviar el correo), confirmación abriendo el link **desde el
+  celular**, y login posterior desde la PC. El usuario de prueba se borró después
+  desde Authentication → Users.
+
+Los dos casos confirman que el enfoque `token_hash` sirve cross-device, que era
+el punto del diseño (los links PKCE por defecto fallan justo en ese paso).
 
 > **Sobre la anon key:** el proyecto usa el formato nuevo de claves de Supabase
 > (`sb_publishable_...`), que es la reemplazante de la vieja `anon` key y es
@@ -155,14 +163,26 @@ tu propia casilla, no a la de otros).
      que es la prueba segura del SMTP + las plantillas. Si en cambio prendieras
      `Confirm email` con el SMTP mal configurado, un usuario nuevo se registraría
      y **nunca podría entrar**, porque no le llegaría el mail de confirmación.
-5. **Prendé "Confirm email"** (Authentication → Providers → Email) recién cuando
-   el paso 4 funcione. No afecta a los usuarios que ya existen (siguen entrando
-   normal): solo obliga a confirmar a los que se registren de ahí en adelante.
+5. **Prendé "Confirm email"** recién cuando el paso 4 funcione. Está en
+   Authentication → **Sign In / Providers** (antes solo "Providers") → expandí el
+   proveedor **Email** → toggle **"Confirm email"** → Save. No afecta a los
+   usuarios que ya existen (siguen entrando normal): solo obliga a confirmar a los
+   que se registren de ahí en adelante.
    - **Por qué conviene con más de una persona:** garantiza que la dirección sea
      real y de quien se registra. Si alguien se equivoca al tipear su email y la
      confirmación está apagada, entra igual — pero después **la recuperación de
      contraseña le resulta imposible** (el mail va a una casilla que no controla)
      y volvés a ser vos la mesa de ayuda.
+   - **Cómo probarlo sin crear otra casilla:** Gmail ignora todo lo que va después
+     de un `+`, así que `tu.email+prueba@gmail.com` llega a tu misma casilla pero
+     para Supabase es un usuario distinto. Registrate con esa dirección, **probá
+     primero que el login te rechace mientras no confirmás** (y que ofrezca
+     reenviar el correo), confirmá abriendo el link **desde el celular**, entrá
+     desde la compu, y después borrá ese usuario en Authentication → Users.
+     Ojo al borrar: verificá que sea el que tiene `+prueba` y no tu cuenta real.
+   - La contraseña del registro debe cumplir la política de la app: mínimo 8
+     caracteres con mayúscula, minúscula, número y carácter especial
+     (`src/utils/passwordPolicy.ts`).
 6. **Caveats del Gmail SMTP** (irrelevantes a esta escala, pero para que sepas):
    límite de envío de ~500 mails/día, y los correos salen "desde tu Gmail" en vez
    de un dominio propio. Para un puñado de personas conocidas, ningún problema.
@@ -201,10 +221,12 @@ transaccional con dominio propio:
 - [x] Plantillas de mail (confirmación y recuperación) cargadas con `token_hash`.
 - [x] Recuperación de contraseña probada de punta a punta, **abriendo el link en
       otro dispositivo** (celular) y después entrando desde la compu.
-- [ ] "Confirm email" prendido — pendiente, se hace al sumar el primer usuario
-      además de vos.
-- [ ] Registro de un conocido probado de punta a punta (alta + confirmación desde
-      el link del mail).
+- [x] "Confirm email" prendido.
+- [x] Registro probado de punta a punta con una dirección `+prueba` (alta, rechazo
+      del login sin confirmar, confirmación desde el celular, login desde la PC) y
+      usuario de prueba borrado después.
+
+**Todo cerrado: la app está lista para compartir, a costo $0.**
 
 > Recordá que en local nada de esto hace falta: el `config.toml` ya deja todo
 > listo y los mails los captura el atrapa-mails en `http://127.0.0.1:54324`.
