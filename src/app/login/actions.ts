@@ -30,7 +30,7 @@ export async function reenviarConfirmacion(formData: FormData) {
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: { emailRedirectTo: `${siteUrl}/auth/callback` },
+    options: { emailRedirectTo: `${siteUrl}/auth/confirm?next=/dashboard` },
   });
 
   if (error) {

@@ -256,6 +256,17 @@ otp_expiry = 3600
 # subject = "Your password has been changed"
 # content_path = "./templates/password_changed_notification.html"
 
+# Templates propios que usan token_hash (verifyOtp) en vez del link PKCE por
+# defecto. Así el link del mail funciona desde cualquier dispositivo (registrás
+# en la compu, confirmás desde el cel) y no depende de un cookie del navegador.
+[auth.email.template.confirmation]
+subject = "Confirmá tu email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Recuperá tu contraseña"
+content_path = "./supabase/templates/recovery.html"
+
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
 enable_signup = false

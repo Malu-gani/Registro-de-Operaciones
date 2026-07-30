@@ -11,7 +11,7 @@ export async function pedirRecuperacion(formData: FormData) {
   // Si falla (email inexistente, rate limit) NO se distingue del éxito: la
   // respuesta al usuario es siempre la misma, para no revelar qué emails existen.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    redirectTo: `${siteUrl}/auth/confirm?next=/reset-password`,
   });
 
   redirect(
