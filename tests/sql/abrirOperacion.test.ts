@@ -157,7 +157,7 @@ describe("abrir_operacion — validaciones", () => {
     expect(await disponibleDe(u, "usd")).toBe(5000);
   });
 
-  // Defecto 9.1 del spec — P0, ARREGLADO en la migración 015. Con cantidad
+  // Defecto 9.1 de docs/testing.md — P0, ARREGLADO en la migración 015. Con cantidad
   // negativa, v_costo daba negativo, la guarda de fondos pasaba siempre, y
   // `disponible - v_costo` SUMABA al saldo (1.000 USD → 101.000 medido). La RPC
   // es security definer y está otorgada a `authenticated`: cualquier usuario

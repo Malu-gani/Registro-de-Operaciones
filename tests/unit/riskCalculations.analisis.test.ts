@@ -76,7 +76,7 @@ describe("casos borde del cálculo", () => {
     ).toThrow(/precio de entrada/);
   });
 
-  // Defecto 9.9 del spec, ARREGLADO: `if (precioStopLoss)` trataba el 0 como
+  // Defecto 9.9 de docs/testing.md, ARREGLADO: `if (precioStopLoss)` trataba el 0 como
   // "sin stop loss", así que un SL de 0 se ignoraba en silencio en vez de
   // validarse. Ahora los precios opcionales se chequean contra `undefined`.
   test("un Stop Loss de 0 en un Short se rechaza por dirección", () => {
@@ -174,7 +174,7 @@ describe("calcularRatioRiesgoBeneficio", () => {
     expect(calcularRatioRiesgoBeneficio(100, 90, 130)).toBe(3);
   });
 
-  // Defecto 9.8 del spec, ARREGLADO: esta función devolvía 0 cuando el riesgo
+  // Defecto 9.8 de docs/testing.md, ARREGLADO: esta función devolvía 0 cuando el riesgo
   // era cero, mientras el núcleo de cálculo lanza error para el mismo caso.
   // `financial-logic.md` documenta el error. Ahora delega en el núcleo.
   test("con Stop Loss igual a la entrada lanza error, igual que el núcleo", () => {
@@ -249,7 +249,7 @@ describe("plazoFijoVencido", () => {
     expect(plazoFijoVencido("2026-07-27")).toBe(true);
   });
 
-  // Defecto 9.3 del spec, ARREGLADO: comparaba contra la fecha UTC, así que a
+  // Defecto 9.3 de docs/testing.md, ARREGLADO: comparaba contra la fecha UTC, así que a
   // las 22:00 ART del día 28 ya consideraba vencido un plazo que vence el 29.
   // El huso de la suite está fijado en vitest.config.ts.
   test("un plazo que vence mañana NO está vencido a las 22:00 de hoy", () => {

@@ -112,7 +112,7 @@ describe("abrir_plazo_fijo", () => {
     expect(plazos).toHaveLength(0);
   });
 
-  // Defecto 9.2 del spec — P3, ARREGLADO en la migración 015.
+  // Defecto 9.2 de docs/testing.md — P3, ARREGLADO en la migración 015.
   test("rechaza el monto negativo con MONTO_INVALIDO y no con un error crudo de Postgres", async () => {
     const u = await conSaldoARS(1000);
 

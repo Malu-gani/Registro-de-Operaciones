@@ -8,11 +8,21 @@ next-env.d.ts
 *.tsbuildinfo
 
 # env
-.env*.local
+# .env*.local no cubre .env a secas ni .env.production: se ignoran todos y se
+# exceptua el de ejemplo, que si se versiona.
+.env
+.env.*
+!.env.local.example
 
 # misc
 .DS_Store
 *.log
+
+# contexto y configuracion de herramientas: local, fuera del repo
+CLAUDE.md
+/.claude/
+/docs/superpowers/
+/.superpowers/
 
 # archivos de ejemplo para probar el importador (locales, no se versionan)
 /test-imports/
@@ -22,3 +32,11 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+# storageState: guarda tokens de sesion de usuarios de prueba
+/playwright/.auth
+
+# cobertura
+/coverage
+
+# CLI de Vercel: project.json trae los ids de organizacion y proyecto
+.vercel

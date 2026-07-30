@@ -1,5 +1,5 @@
 -- Rechaza cerrar una operación con fecha de salida anterior a la de entrada
--- (defecto 9.4 del spec de la suite de pruebas).
+-- (defecto 9.4 de docs/testing.md).
 --
 -- `cerrar_operacion` solo validaba contra `current_date` (migración 011, que
 -- frena las fechas futuras), nunca contra `op.fecha_entrada`. O sea que se podía

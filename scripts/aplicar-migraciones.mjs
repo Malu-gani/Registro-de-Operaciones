@@ -27,7 +27,7 @@ const DIR = "supabase";
  * ilegible con "permission denied" antes de llegar a RLS. La migración
  * `017_grants_explicitos.sql` volvió explícitos esos permisos, así que ya se
  * puede aplicar con el rol de verdad —que es la prueba de que el repo es
- * autosuficiente para recrear su base (defecto 9.10 del spec de la suite).
+ * autosuficiente para recrear su base (defecto 9.10 de docs/testing.md).
  */
 const USUARIO_DB = "postgres";
 

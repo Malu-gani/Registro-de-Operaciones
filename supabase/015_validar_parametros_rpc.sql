@@ -1,5 +1,5 @@
 -- Validación de parámetros en las RPC que mueven plata (defectos 9.1, 9.5 y 9.2
--- del spec de la suite de pruebas).
+-- de docs/testing.md).
 --
 -- El problema: `abrir_operacion`, `cerrar_operacion` y `abrir_plazo_fijo` son
 -- `security definer` y están otorgadas a `authenticated`, o sea que cualquier
