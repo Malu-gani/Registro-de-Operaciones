@@ -20,9 +20,15 @@ recién si algún día la abrieras a desconocidos.
   `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXT_PUBLIC_SITE_URL` (= la URL de arriba).
 - **Mails:** sin configurar, por diseño (ver Fase A). `Confirm email` apagado.
 
-Verificado en producción: la app carga sin errores de consola y
+- **URLs de Supabase:** Site URL y Redirect URLs (`…/**`) ya apuntan a la URL de
+  producción.
+
+Verificado en producción: la app carga sin errores de consola;
 `NEXT_PUBLIC_SITE_URL` quedó bien tomada en el build (`/auth/confirm` sin token
-redirige al dominio de Vercel, no a `localhost`).
+redirige al dominio de Vercel, no a `localhost`); el registro de un usuario nuevo
+funciona sin mail (como corresponde con `Confirm email` apagado); y los precios en
+vivo cargan bien desde Vercel, tanto acciones (AAPL / Yahoo Finance) como cripto
+(BTC / CoinGecko).
 
 > **Sobre la anon key:** el proyecto usa el formato nuevo de claves de Supabase
 > (`sb_publishable_...`), que es la reemplazante de la vieja `anon` key y es
@@ -84,6 +90,12 @@ arrancar sin configurar ningún correo.
 - **¿Y si te olvidás tu propia contraseña?** No necesitás mail: la reseteás vos
   desde **Supabase → Authentication → Users**, buscás tu usuario y usás la opción
   de resetear/cambiar contraseña. 10 segundos.
+- **¿Y si te olvidás con qué email te registraste?** Esa misma pantalla
+  (Authentication → Users) lista todos los usuarios, así que ahí lo encontrás.
+  **Importante:** no resuelvas el olvido registrando una cuenta nueva — el RLS
+  filtra por usuario, así que desde otra cuenta **no vas a ver tus operaciones ni
+  tus portafolios**; quedan colgados del usuario original. Recuperá el usuario
+  viejo y borrá el de más (⋯ → Delete user) para no dejar cuentas huérfanas.
 - **Costo: $0. Nada de SMTP, nada de dominio.** Esta fase alcanza mientras seas
   el único usuario.
 
