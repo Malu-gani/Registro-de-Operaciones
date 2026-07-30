@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { login } from "./actions";
+import { login, reenviarConfirmacion } from "./actions";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; sinConfirmar?: string }>;
 }) {
   const params = await searchParams;
 
@@ -27,6 +27,25 @@ export default async function LoginPage({
           <p className="mb-4 rounded-lg border border-risk-red-border bg-risk-red-bg p-3 text-sm text-risk-red">
             {params.error}
           </p>
+        )}
+
+        {params.sinConfirmar && (
+          <form action={reenviarConfirmacion} className="mb-4 flex flex-col gap-2">
+            <input
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+              placeholder="Reingresá tu email"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
+            />
+            <button
+              type="submit"
+              className="rounded-md border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-brand hover:text-brand-foreground"
+            >
+              Reenviar email de confirmación
+            </button>
+          </form>
         )}
 
         <form action={login} className="flex flex-col gap-4">
@@ -64,6 +83,12 @@ export default async function LoginPage({
             Ingresar
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm">
+          <Link href="/forgot-password" className="text-brand underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
 
         <p className="mt-4 text-center text-sm text-foreground-muted">
           ¿No tiene una cuenta?{" "}

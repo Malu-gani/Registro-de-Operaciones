@@ -1,23 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dashboard";
 
-  // Base para el redirect: NEXT_PUBLIC_SITE_URL, no el origin de request.url.
-  // `next start` puede reportar el host como "localhost" aunque el navegador
-  // esté en "127.0.0.1" (o, en producción detrás de un proxy, en el dominio
-  // real). Como el link del mail se arma con SITE_URL, el navegador llega al
-  // callback en ESE host y ahí quedan las cookies; redirigir a otro host las
-  // dejaría afuera y la sesión se perdería (el usuario terminaba en /login).
+  // Base del redirect desde NEXT_PUBLIC_SITE_URL (ver el mismo comentario que en
+  // auth/callback: next start puede reportar mal el host).
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
 
-  if (code) {
-    // Las cookies de sesión que setea el intercambio tienen que viajar EN ESTA
-    // respuesta (mismo patrón que src/lib/supabase/middleware.ts): con el cliente
-    // basado en next/headers, un NextResponse.redirect a mano no las arrastra.
+  if (tokenHash && type) {
+    // verifyOtp con token_hash NO necesita un cookie previo del navegador (a
+    // diferencia del intercambio PKCE), así que el link del mail funciona desde
+    // cualquier dispositivo. Las cookies de sesión que setea se escriben sobre
+    // esta respuesta de redirect (mismo patrón que el middleware).
     const response = NextResponse.redirect(`${base}${next}`);
 
     const supabase = createServerClient(
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
       return response;
     }
@@ -45,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.redirect(
     `${base}/login?error=${encodeURIComponent(
-      "No se pudo confirmar el email. Probá iniciar sesión o registrate de nuevo."
+      "El enlace no es válido o ya venció. Probá iniciar sesión o pedí uno nuevo."
     )}`
   );
 }

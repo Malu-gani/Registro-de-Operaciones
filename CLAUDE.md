@@ -117,6 +117,13 @@ Detalle completo en las memorias (`MEMORY.md` → `project-overview` y
   Futuros, Crypto Spot, Plazos Fijos) + cerrar operaciones con P&L en vivo.
 - **Historial**, **Dashboard**, **Portafolio** y **Multi-portafolio** — ✅.
 - Precios reales (CoinGecko cripto + Yahoo Finance acciones/CEDEARs) — ✅.
+- Verificación por email (confirmación de registro + recuperación de
+  contraseña, con `verifyOtp`/`token_hash`) — ✅ en local; para producción ver
+  el runbook.
+
+**Despliegue gratuito y activación de mails:** guía paso a paso en
+[`docs/despliegue-gratuito.md`](docs/despliegue-gratuito.md) (Vercel + Supabase
+free + Resend; el único costo es el dominio para mandar a terceros).
 
 **Próximo paso / decisiones abiertas:** ver `project-overview` y
 `project-pending-decisions` en las memorias.
