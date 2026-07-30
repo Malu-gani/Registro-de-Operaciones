@@ -9,6 +9,34 @@ recién si algún día la abrieras a desconocidos.
 > app andando; el 3 se organiza en fases para que arranques sin configurar mail
 > y solo agregues envío de correos cuando sumes a otras personas.
 
+## Estado del despliegue (2026-07-29)
+
+**Fase A desplegada y verificada.** La app está online, gratis, para uso propio:
+
+- **URL de producción:** https://registro-de-operaciones-chi.vercel.app
+- **Hosting:** Vercel, plan Hobby (gratis). El entorno *Production* sigue la rama
+  `main`: cada merge a `main` redeploya solo.
+- **Variables cargadas en Vercel:** `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `NEXT_PUBLIC_SITE_URL` (= la URL de arriba).
+- **Mails:** sin configurar, por diseño (ver Fase A). `Confirm email` apagado.
+
+- **URLs de Supabase:** Site URL y Redirect URLs (`…/**`) ya apuntan a la URL de
+  producción.
+
+Verificado en producción: la app carga sin errores de consola;
+`NEXT_PUBLIC_SITE_URL` quedó bien tomada en el build (`/auth/confirm` sin token
+redirige al dominio de Vercel, no a `localhost`); el registro de un usuario nuevo
+funciona sin mail (como corresponde con `Confirm email` apagado); y los precios en
+vivo cargan bien desde Vercel, tanto acciones (AAPL / Yahoo Finance) como cripto
+(BTC / CoinGecko).
+
+> **Sobre la anon key:** el proyecto usa el formato nuevo de claves de Supabase
+> (`sb_publishable_...`), que es la reemplazante de la vieja `anon` key y es
+> segura para el navegador (la protección real la da el RLS). El nombre de la
+> variable sigue siendo `NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Nunca** usar la
+> *secret key* (`sb_secret_...`) en una variable `NEXT_PUBLIC`: saltea el RLS y
+> quedaría expuesta en el navegador.
+
 ## 1. Base de datos + Auth — Supabase (free tier)
 
 - Ya existe el proyecto en la nube (el que usa la app hoy). El free tier alcanza
@@ -28,6 +56,18 @@ recién si algún día la abrieras a desconocidos.
      `https://mi-app.vercel.app`). **Es importante:** con esto se arman los links
      de los mails de confirmación/recuperación. Si falta, apuntan a localhost.
 4. Deploy. Anotá la URL final de Vercel.
+
+   > **Gotchas de la UI de Vercel** (vividos en el despliegue real):
+   > - En Settings hay dos entradas parecidas: **"Environment Variables"** (la
+   >   que sirve, donde se cargan las claves) y **"Environments"** (para crear
+   >   entornos tipo staging, **es función paga de Pro — no hace falta**).
+   > - `NEXT_PUBLIC_SITE_URL` se incrusta durante el build: si la agregás o
+   >   cambiás después del primer deploy, hay que **Redeploy** (Deployments →
+   >   ⋯ → Redeploy, destildando "Use existing Build Cache"). Sin eso, la
+   >   variable no existe para la app.
+   > - La URL va **sin la barra final** (`https://algo.vercel.app`, no
+   >   `.../`).
+
 5. En Supabase → **Authentication → URL Configuration**:
    - **Site URL:** la URL de Vercel.
    - **Redirect URLs:** agregá `https://mi-app.vercel.app/**` (cubre
@@ -50,6 +90,12 @@ arrancar sin configurar ningún correo.
 - **¿Y si te olvidás tu propia contraseña?** No necesitás mail: la reseteás vos
   desde **Supabase → Authentication → Users**, buscás tu usuario y usás la opción
   de resetear/cambiar contraseña. 10 segundos.
+- **¿Y si te olvidás con qué email te registraste?** Esa misma pantalla
+  (Authentication → Users) lista todos los usuarios, así que ahí lo encontrás.
+  **Importante:** no resuelvas el olvido registrando una cuenta nueva — el RLS
+  filtra por usuario, así que desde otra cuenta **no vas a ver tus operaciones ni
+  tus portafolios**; quedan colgados del usuario original. Recuperá el usuario
+  viejo y borrá el de más (⋯ → Delete user) para no dejar cuentas huérfanas.
 - **Costo: $0. Nada de SMTP, nada de dominio.** Esta fase alcanza mientras seas
   el único usuario.
 
