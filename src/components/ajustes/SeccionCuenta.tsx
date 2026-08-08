@@ -37,25 +37,29 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
   const [guardando, setGuardando] = useState(false);
   const [estado, setEstado] = useState<Estado>(null);
 
+  // Validación en tiempo real, por campo (antes solo se validaba al hacer
+  // click, así que el botón quedaba habilitado con datos inválidos — ver
+  // OPS-BUG-03). Un campo vacío no muestra error todavía: recién avisa
+  // cuando el usuario empezó a escribir algo inválido.
+  const errorNueva = nueva ? validarPassword(nueva) : null;
+  const errorIgualALaActual =
+    !errorNueva && nueva && actual && nueva === actual
+      ? "La nueva contraseña debe ser distinta a la actual."
+      : null;
+  const errorConfirmar =
+    confirmar && nueva !== confirmar ? "Las contraseñas no coinciden." : null;
+
+  const formularioValido =
+    !!actual &&
+    !!nueva &&
+    !!confirmar &&
+    !errorNueva &&
+    !errorIgualALaActual &&
+    !errorConfirmar;
+
   const guardar = async () => {
     setEstado(null);
-    if (!actual) {
-      setEstado({ tipo: "error", texto: "Ingresá tu contraseña actual." });
-      return;
-    }
-    const passwordError = validarPassword(nueva);
-    if (passwordError) {
-      setEstado({ tipo: "error", texto: passwordError });
-      return;
-    }
-    if (nueva !== confirmar) {
-      setEstado({ tipo: "error", texto: "Las contraseñas no coinciden." });
-      return;
-    }
-    if (nueva === actual) {
-      setEstado({ tipo: "error", texto: "La nueva contraseña debe ser distinta a la actual." });
-      return;
-    }
+    if (!formularioValido) return;
     setGuardando(true);
 
     // 1. Verificamos la contraseña actual reautenticando la sesión.
@@ -105,6 +109,9 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
             onChange={(e) => setNueva(e.target.value)}
             autoComplete="new-password"
           />
+          {(errorNueva || errorIgualALaActual) && (
+            <p className="text-xs text-risk-red">{errorNueva ?? errorIgualALaActual}</p>
+          )}
         </label>
         <label className="flex flex-col gap-1">
           <span className={labelClasses}>Repetir nueva contraseña</span>
@@ -115,6 +122,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
             onChange={(e) => setConfirmar(e.target.value)}
             autoComplete="new-password"
           />
+          {errorConfirmar && <p className="text-xs text-risk-red">{errorConfirmar}</p>}
         </label>
       </div>
       <p className="text-xs text-foreground-muted">{REQUISITOS_PASSWORD_HINT}</p>
@@ -122,7 +130,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
       <button
         type="button"
         onClick={guardar}
-        disabled={guardando || !actual || !nueva || !confirmar}
+        disabled={guardando || !formularioValido}
         className="self-start rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
       >
         {guardando ? "Guardando..." : "Actualizar contraseña"}

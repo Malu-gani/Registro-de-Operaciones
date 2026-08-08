@@ -84,8 +84,18 @@ export async function insertPlazoFijo(
   return rowToPlazoFijo(row as PlazoFijoRow);
 }
 
-/** Liquida un plazo fijo: acredita capital + interés a la cuenta ARS/USD. */
-export async function liquidarPlazoFijo(id: string): Promise<void> {
-  const { error } = await supabase.rpc("liquidar_plazo_fijo", { p_id: id });
+/**
+ * Liquida un plazo fijo: acredita capital + interés a la cuenta ARS/USD.
+ * `interesReal`, si se pasa, reemplaza el interés estimado original (cuando
+ * la tasa pactada no se cumplió tal cual); si se omite, usa el estimado.
+ */
+export async function liquidarPlazoFijo(
+  id: string,
+  interesReal?: number
+): Promise<void> {
+  const { error } = await supabase.rpc("liquidar_plazo_fijo", {
+    p_id: id,
+    p_interes_real: interesReal ?? null,
+  });
   if (error) throw new Error(error.message);
 }

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
-import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { useFiltroFechaPreset, SelectorFechaPreset } from "@/components/FiltroFechaPreset";
 import { FiltroChips } from "@/components/FiltroChips";
-import { plazoFijoVencido } from "@/utils/riskCalculations";
 import type { Divisa, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
 
 type FiltroResultado = "todas" | "ganadoras" | "perdedoras";
@@ -321,18 +320,22 @@ function TablaOperacionesCerradas({
   );
 }
 
+/**
+ * Solo lectura: acá van los plazos fijos ya liquidados. Liquidar es una
+ * acción de Posiciones Abiertas (ver OPS-BUG-04) — antes convivía en esta
+ * misma tabla mezclado con los vencidos-sin-liquidar, lo que hacía que el
+ * botón de acción apareciera en el módulo de "solo consulta".
+ */
 function TablaPlazosFijos() {
-  const { plazosFijos, loading, error, liquidarPlazoFijo } = usePlazosFijos();
-  const { refrescar } = useCuentas();
-  const [liquidandoId, setLiquidandoId] = useState<string | null>(null);
+  const { plazosFijos, loading, error } = usePlazosFijos();
   const [moneda, setMoneda] = useState<FiltroMoneda>("todas");
 
-  const vencidos = plazosFijos
-    .filter((pf) => plazoFijoVencido(pf.fechaVencimiento))
+  const liquidados = plazosFijos
+    .filter((pf) => pf.estado === "liquidado")
     .sort((a, b) => b.fechaVencimiento.localeCompare(a.fechaVencimiento));
 
   const filtrados =
-    moneda === "todas" ? vencidos : vencidos.filter((pf) => pf.divisa === moneda);
+    moneda === "todas" ? liquidados : liquidados.filter((pf) => pf.divisa === moneda);
 
   const {
     visibles,
@@ -347,16 +350,6 @@ function TablaPlazosFijos() {
     irAPagina,
   } = useListaPaginada(filtrados, { conMinimizar: true });
 
-  const liquidar = async (id: string) => {
-    setLiquidandoId(id);
-    try {
-      await liquidarPlazoFijo(id);
-      await refrescar();
-    } finally {
-      setLiquidandoId(null);
-    }
-  };
-
   if (error) {
     return (
       <div className="rounded-lg border border-risk-red-border bg-risk-red-bg p-4 text-sm text-risk-red">
@@ -369,11 +362,11 @@ function TablaPlazosFijos() {
     return <p className="text-sm text-foreground-muted">Cargando plazos fijos...</p>;
   }
 
-  if (vencidos.length === 0) {
+  if (liquidados.length === 0) {
     return (
       <p className="text-sm text-foreground-muted">
-        Todavía no hay plazos fijos vencidos. Los plazos fijos en curso
-        aparecen en Posiciones Abiertas hasta su fecha de vencimiento.
+        Todavía no liquidó ningún plazo fijo. Los plazos fijos en curso
+        aparecen en Posiciones Abiertas, con la opción de liquidar.
       </p>
     );
   }
@@ -389,7 +382,7 @@ function TablaPlazosFijos() {
 
       {filtrados.length === 0 ? (
         <p className="text-sm text-foreground-muted">
-          No hay plazos fijos vencidos en {moneda}.
+          No hay plazos fijos liquidados en {moneda}.
         </p>
       ) : (
         <>
@@ -402,9 +395,8 @@ function TablaPlazosFijos() {
               <th className="px-4 py-3 font-medium">Plazo</th>
               <th className="px-4 py-3 font-medium">Fecha inicio</th>
               <th className="px-4 py-3 font-medium">Vencimiento</th>
-              <th className="px-4 py-3 font-medium">Interés estimado</th>
-              <th className="px-4 py-3 font-medium">Total al vencimiento</th>
-              <th className="px-4 py-3 font-medium"></th>
+              <th className="px-4 py-3 font-medium">Interés liquidado</th>
+              <th className="px-4 py-3 font-medium">Total liquidado</th>
             </tr>
           </thead>
           <tbody>
@@ -424,22 +416,6 @@ function TablaPlazosFijos() {
                 </td>
                 <td className="px-4 py-3 font-medium text-foreground">
                   {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {pf.estado === "liquidado" ? (
-                    <span className="rounded-full bg-risk-green-bg px-2 py-0.5 text-xs font-medium text-risk-green">
-                      Liquidado
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => liquidar(pf.id)}
-                      disabled={liquidandoId === pf.id}
-                      className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted disabled:opacity-60"
-                    >
-                      {liquidandoId === pf.id ? "Liquidando..." : "Liquidar"}
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -560,7 +536,12 @@ function GraficosPorDivisaSection() {
 }
 
 export default function HistorialPage() {
-  const [tab, setTab] = useState<TabId>("acciones");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const tabInicial =
+    tabParam && tabs.some((t) => t.id === tabParam) ? tabParam : "acciones";
+
+  const [tab, setTab] = useState<TabId>(tabInicial);
   const { trades } = useTrades();
   const { plazosFijos } = usePlazosFijos();
 
