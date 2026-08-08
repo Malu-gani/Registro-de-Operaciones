@@ -91,34 +91,85 @@ function hoyISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Panel para cargar los saldos iniciales de las cuentas del portafolio ("saldos de hoy"). */
+/**
+ * Redondea a 3 decimales solo para mostrar en el input de edición de saldos
+ * (evita el ruido de punto flotante tipo 6526039.479452055). El valor exacto
+ * de la base se sigue usando al guardar si el usuario no toca el campo — ver
+ * `tocado` en SetupSaldos. Esto no toca la precisión de cantidades de cripto
+ * en los formularios de operaciones, que son un campo distinto.
+ */
+function formatearParaInput(valor: number): string {
+  return String(Number(valor.toFixed(3)));
+}
+
+/**
+ * Panel para cargar los saldos de las cuentas del portafolio. Se usa en dos
+ * modos: "inicial" (primera carga, "cargá tus saldos de hoy") y "edicion"
+ * (botón "Editar saldos" sobre saldos ya cargados). En modo edición, los
+ * inputs arrancan precargados con el Disponible actual y un campo dejado en
+ * blanco CONSERVA ese valor (antes se pisaba a 0 sin avisar, ver
+ * OPS-BUG-05). Para poner una cuenta en 0 hay que tipear el dígito 0.
+ */
 function SetupSaldos({
   portafolioId,
   cuentas,
+  modo,
+  valoresActuales,
   onListo,
+  onCancelar,
 }: {
   portafolioId: string;
   cuentas: typeof CUENTAS;
+  modo: "inicial" | "edicion";
+  valoresActuales: Record<CuentaId, number>;
   onListo: () => void;
+  onCancelar?: () => void;
 }) {
   const { setSaldoInicial } = useCuentas();
-  const [valores, setValores] = useState<Record<CuentaId, string>>({
-    ars: "",
-    usd: "",
-    usdt_spot: "",
-    usdt_futuros: "",
+  const [valores, setValores] = useState<Record<CuentaId, string>>(() =>
+    modo === "edicion"
+      ? {
+          ars: formatearParaInput(valoresActuales.ars),
+          usd: formatearParaInput(valoresActuales.usd),
+          usdt_spot: formatearParaInput(valoresActuales.usdt_spot),
+          usdt_futuros: formatearParaInput(valoresActuales.usdt_futuros),
+        }
+      : { ars: "", usd: "", usdt_spot: "", usdt_futuros: "" }
+  );
+  // Un campo que el usuario nunca tocó manda el valor EXACTO de la base al
+  // guardar, no lo que se ve en pantalla (que está redondeado a 3 decimales
+  // solo para lectura). Evita perder precisión en cuentas que no se editaron.
+  const [tocado, setTocado] = useState<Record<CuentaId, boolean>>({
+    ars: false,
+    usd: false,
+    usdt_spot: false,
+    usdt_futuros: false,
   });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+
+  /** Blanco conserva el valor previo (edición) o vale 0 (carga inicial). */
+  const montoResuelto = (cuentaId: CuentaId): number => {
+    if (modo === "edicion" && !tocado[cuentaId]) return valoresActuales[cuentaId];
+    const raw = valores[cuentaId].trim();
+    if (raw === "") return modo === "edicion" ? valoresActuales[cuentaId] : 0;
+    const monto = parseFloat(raw);
+    return Number.isFinite(monto) ? monto : valoresActuales[cuentaId] ?? 0;
+  };
+
+  const cambios = cuentas
+    .map((c) => ({ cuenta: c, anterior: valoresActuales[c.id], nuevo: montoResuelto(c.id) }))
+    .filter((c) => modo === "inicial" || c.anterior !== c.nuevo);
 
   const guardar = async () => {
     setGuardando(true);
     setError(null);
     try {
       for (const c of cuentas) {
-        const monto = parseFloat(valores[c.id]);
-        await setSaldoInicial(portafolioId, c.id, Number.isFinite(monto) ? monto : 0);
+        await setSaldoInicial(portafolioId, c.id, montoResuelto(c.id));
       }
+      setConfirmando(false);
       onListo();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron guardar los saldos.");
@@ -131,12 +182,12 @@ function SetupSaldos({
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6">
       <div>
         <h2 className="text-sm font-semibold text-foreground">
-          Cargá tus saldos de hoy
+          {modo === "inicial" ? "Cargá tus saldos de hoy" : "Editar saldos"}
         </h2>
         <p className="mt-1 text-xs text-foreground-muted">
-          Indicá cuánto tenés disponible hoy en cada cuenta. Lo que ya está
-          invertido en posiciones abiertas queda como Comprometido; esto es solo
-          tu capital libre. Podés dejar en 0 lo que no uses.
+          {modo === "inicial"
+            ? "Indicá cuánto tenés disponible hoy en cada cuenta. Lo que ya está invertido en posiciones abiertas queda como Comprometido; esto es solo tu capital libre. Podés dejar en 0 lo que no uses."
+            : "Un campo que dejes en blanco conserva su valor actual. Para poner una cuenta en 0, tipeá el dígito 0."}
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -148,23 +199,89 @@ function SetupSaldos({
               step="any"
               className={inputClasses}
               value={valores[c.id]}
-              onChange={(e) =>
-                setValores((prev) => ({ ...prev, [c.id]: e.target.value }))
-              }
+              onChange={(e) => {
+                setValores((prev) => ({ ...prev, [c.id]: e.target.value }));
+                setTocado((prev) => ({ ...prev, [c.id]: true }));
+              }}
               placeholder="0"
             />
           </label>
         ))}
       </div>
       {error && <p className="text-xs text-risk-red">{error}</p>}
-      <button
-        type="button"
-        onClick={guardar}
-        disabled={guardando}
-        className="self-start rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
-      >
-        {guardando ? "Guardando..." : "Guardar saldos iniciales"}
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setConfirmando(true)}
+          disabled={guardando}
+          className="self-start rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          {modo === "inicial" ? "Guardar saldos iniciales" : "Guardar edición de saldos"}
+        </button>
+        {modo === "edicion" && onCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={guardando}
+            className="self-start rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+
+      {confirmando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
+            <h3 className="text-sm font-semibold text-foreground">
+              Confirmar {modo === "inicial" ? "carga de saldos" : "edición de saldos"}
+            </h3>
+            <p className="mt-2 text-xs text-foreground-muted">
+              {modo === "inicial"
+                ? "Se van a guardar estos saldos:"
+                : cambios.length === 0
+                  ? "No hay cambios: los saldos quedan como estaban."
+                  : "Se van a actualizar estos saldos:"}
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              {(modo === "inicial"
+                ? cuentas.map((c) => ({ cuenta: c, anterior: 0, nuevo: montoResuelto(c.id) }))
+                : cambios
+              ).map(({ cuenta, anterior, nuevo }) => (
+                <div key={cuenta.id} className="flex items-center justify-between text-xs">
+                  <span className="text-foreground-muted">{cuenta.label}</span>
+                  {modo === "edicion" ? (
+                    <span className="text-foreground">
+                      {formatMonto(anterior, cuenta.divisa)} → {formatMonto(nuevo, cuenta.divisa)}
+                    </span>
+                  ) : (
+                    <span className="text-foreground">{formatMonto(nuevo, cuenta.divisa)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {error && <p className="mt-3 text-xs text-risk-red">{error}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                disabled={guardando}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
+              >
+                Volver / Modificar
+              </button>
+              <button
+                type="button"
+                onClick={guardar}
+                disabled={guardando}
+                className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
+              >
+                {guardando ? "Guardando..." : "Confirmar y Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -355,7 +472,15 @@ export default function CuentaPage() {
         <SetupSaldos
           portafolioId={portafolioActivoId}
           cuentas={cuentasVisibles}
+          modo={tieneSaldosCargados ? "edicion" : "inicial"}
+          valoresActuales={{
+            ars: disponibleDe(portafolioActivoId, "ars"),
+            usd: disponibleDe(portafolioActivoId, "usd"),
+            usdt_spot: disponibleDe(portafolioActivoId, "usdt_spot"),
+            usdt_futuros: disponibleDe(portafolioActivoId, "usdt_futuros"),
+          }}
           onListo={() => setEditandoSaldos(false)}
+          onCancelar={tieneSaldosCargados ? () => setEditandoSaldos(false) : undefined}
         />
       ) : (
         <>
