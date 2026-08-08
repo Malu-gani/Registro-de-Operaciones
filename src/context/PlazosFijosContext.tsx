@@ -18,7 +18,7 @@ interface PlazosFijosContextValue {
     plazoFijo: Omit<PlazoFijo, "id" | "portafolioId" | "estado">,
     portafolioId?: string
   ) => Promise<void>;
-  liquidarPlazoFijo: (id: string) => Promise<void>;
+  liquidarPlazoFijo: (id: string, interesReal?: number) => Promise<void>;
 }
 
 const PlazosFijosContext = createContext<PlazosFijosContextValue | null>(null);
@@ -72,8 +72,8 @@ export function PlazosFijosProvider({ children }: { children: React.ReactNode })
     setPlazosFijos((prev) => [nuevo, ...prev]);
   };
 
-  const liquidarPlazoFijo = async (id: string) => {
-    await liquidarPlazoFijoApi(id);
+  const liquidarPlazoFijo = async (id: string, interesReal?: number) => {
+    await liquidarPlazoFijoApi(id, interesReal);
     await cargar();
   };
 

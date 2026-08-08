@@ -8,7 +8,15 @@ import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { FiltroChips } from "@/components/FiltroChips";
 import { calcularPnl, plazoFijoVencido } from "@/utils/riskCalculations";
-import type { Divisa, Trade, TipoActivo, SubTipoAccion, SubTipoCrypto } from "@/types/trading";
+import { inputClasses, labelClasses } from "@/components/formStyles";
+import type {
+  Divisa,
+  Trade,
+  TipoActivo,
+  SubTipoAccion,
+  SubTipoCrypto,
+  PlazoFijo,
+} from "@/types/trading";
 
 type FiltroDireccion = "todas" | "long" | "short";
 const OPCIONES_DIRECCION = [
@@ -465,16 +473,161 @@ function diasRestantes(fechaVencimiento: string): number {
   return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+/** Badge informativo: no bloquea nada, solo avisa que ya pasó la fecha pactada. */
+function BadgeVencido({ fechaVencimiento }: { fechaVencimiento: string }) {
+  if (!plazoFijoVencido(fechaVencimiento)) return null;
+  return (
+    <span className="rounded-full bg-risk-yellow-bg px-2 py-0.5 text-xs font-medium text-risk-yellow">
+      Vencido
+    </span>
+  );
+}
+
+/**
+ * Modal de confirmación de liquidación (OPS-BUG-04 / OPS-US-04). Flujo A
+ * (default): se cumplió el interés pactado, se liquida con el interés
+ * proyectado tal cual. Flujo B: el usuario desmarca la casilla y carga la
+ * rentabilidad que realmente se acreditó — reemplaza al interés proyectado
+ * en la liquidación (ver migración 018, `p_interes_real`).
+ */
+function LiquidarPlazoFijoModal({
+  plazoFijo,
+  onClose,
+}: {
+  plazoFijo: PlazoFijo;
+  onClose: () => void;
+}) {
+  const { liquidarPlazoFijo } = usePlazosFijos();
+  const { refrescar } = useCuentas();
+  const [cumplioLoAcordado, setCumplioLoAcordado] = useState(true);
+  const [rentabilidadObtenida, setRentabilidadObtenida] = useState("");
+  const [liquidando, setLiquidando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const rentabilidadNum = parseFloat(rentabilidadObtenida);
+  const rentabilidadIngresadaValida =
+    rentabilidadObtenida.trim() !== "" &&
+    Number.isFinite(rentabilidadNum) &&
+    rentabilidadNum >= 0;
+  const formularioValido = cumplioLoAcordado || rentabilidadIngresadaValida;
+
+  const interesAAcreditar = cumplioLoAcordado
+    ? plazoFijo.interesEstimado
+    : rentabilidadIngresadaValida
+      ? rentabilidadNum
+      : null;
+
+  const confirmar = async () => {
+    if (!formularioValido) return;
+    setLiquidando(true);
+    setError(null);
+    try {
+      await liquidarPlazoFijo(
+        plazoFijo.id,
+        cumplioLoAcordado ? undefined : rentabilidadNum
+      );
+      await refrescar();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo liquidar el plazo fijo.");
+    } finally {
+      setLiquidando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
+        <h3 className="text-sm font-semibold text-foreground">Liquidar plazo fijo</h3>
+        <p className="mt-2 text-xs text-foreground-muted">
+          {formatMonto(plazoFijo.monto, plazoFijo.divisa)} al {plazoFijo.tasaTna}% TNA
+          · vencimiento {plazoFijo.fechaVencimiento}.
+        </p>
+
+        <label className="mt-4 flex items-start gap-2 text-xs text-foreground">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={cumplioLoAcordado}
+            onChange={(e) => setCumplioLoAcordado(e.target.checked)}
+          />
+          <span>¿Se cumplió la fecha y se pagó el interés acordado?</span>
+        </label>
+
+        {cumplioLoAcordado ? (
+          <p className="mt-3 text-xs text-foreground-muted">
+            Se acredita el interés proyectado:{" "}
+            <span className="text-risk-green">
+              +{formatMonto(plazoFijo.interesEstimado, plazoFijo.divisa)}
+            </span>{" "}
+            (total {formatMonto(plazoFijo.monto + plazoFijo.interesEstimado, plazoFijo.divisa)}).
+          </p>
+        ) : (
+          <label className="mt-3 flex flex-col gap-1">
+            <span className={labelClasses}>Colocar rentabilidad obtenida</span>
+            <input
+              type="number"
+              step="any"
+              min={0}
+              className={inputClasses}
+              value={rentabilidadObtenida}
+              onChange={(e) => setRentabilidadObtenida(e.target.value)}
+              placeholder="0"
+            />
+            {rentabilidadObtenida.trim() !== "" && !rentabilidadIngresadaValida && (
+              <p className="text-xs text-risk-red">Ingresá un número mayor o igual a 0.</p>
+            )}
+            {interesAAcreditar !== null && (
+              <p className="text-xs text-foreground-muted">
+                Total a acreditar: {formatMonto(plazoFijo.monto + interesAAcreditar, plazoFijo.divisa)}.
+              </p>
+            )}
+          </label>
+        )}
+
+        {error && <p className="mt-3 text-xs text-risk-red">{error}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={liquidando}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-muted disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={confirmar}
+            disabled={liquidando || !formularioValido}
+            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            {liquidando ? "Liquidando..." : "Confirmar liquidación"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Plazos fijos "en ejecución" (no liquidados), con la acción de liquidar.
+ * Antes filtraba por fecha de vencimiento (solo los no vencidos) y no tenía
+ * acción; ahora muestra TODOS los no liquidados —venzan hoy, en el futuro, o
+ * ya vencidos— porque liquidar es una acción de este módulo, no de Historial
+ * (ver OPS-BUG-04). "Vencido" queda como dato informativo, no como filtro.
+ */
 function TablaPlazosFijosPendientes() {
   const { plazosFijos, loading, error } = usePlazosFijos();
   const [moneda, setMoneda] = useState<FiltroMoneda>("todas");
+  const [liquidando, setLiquidando] = useState<PlazoFijo | null>(null);
 
-  const pendientes = plazosFijos
-    .filter((pf) => !plazoFijoVencido(pf.fechaVencimiento))
+  const abiertos = plazosFijos
+    .filter((pf) => pf.estado !== "liquidado")
     .sort((a, b) => a.fechaVencimiento.localeCompare(b.fechaVencimiento));
 
   const filtrados =
-    moneda === "todas" ? pendientes : pendientes.filter((pf) => pf.divisa === moneda);
+    moneda === "todas" ? abiertos : abiertos.filter((pf) => pf.divisa === moneda);
 
   const {
     visibles,
@@ -501,10 +654,10 @@ function TablaPlazosFijosPendientes() {
     return <p className="text-sm text-foreground-muted">Cargando plazos fijos...</p>;
   }
 
-  if (pendientes.length === 0) {
+  if (abiertos.length === 0) {
     return (
       <p className="text-sm text-foreground-muted">
-        No tiene plazos fijos pendientes de vencimiento en este momento.
+        No tiene plazos fijos en ejecución en este momento.
       </p>
     );
   }
@@ -522,7 +675,7 @@ function TablaPlazosFijosPendientes() {
 
       {filtrados.length === 0 ? (
         <p className="text-sm text-foreground-muted">
-          No hay plazos fijos en {moneda} pendientes de vencimiento.
+          No hay plazos fijos en {moneda} en ejecución.
         </p>
       ) : (
         <>
@@ -534,8 +687,9 @@ function TablaPlazosFijosPendientes() {
                 <p className="font-medium text-foreground">
                   {formatMonto(pf.monto, pf.divisa)}
                 </p>
-                <p className="text-xs text-foreground-muted">
+                <p className="flex items-center gap-2 text-xs text-foreground-muted">
                   Vence el {pf.fechaVencimiento}
+                  <BadgeVencido fechaVencimiento={pf.fechaVencimiento} />
                 </p>
               </div>
               <p className="shrink-0 text-right text-sm font-medium text-risk-green">
@@ -561,18 +715,26 @@ function TablaPlazosFijosPendientes() {
                 </span>
               </p>
               <p className="text-foreground-muted">
-                Total al vencimiento{" "}
+                Total proyectado{" "}
                 <span className="block text-foreground">
                   {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
                 </span>
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setLiquidando(pf)}
+              className="mt-3 w-full rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+            >
+              Liquidar
+            </button>
           </div>
         ))}
       </div>
 
       <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
-        <table className="w-full min-w-[750px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-foreground-muted">
               <th className="px-4 py-3 font-medium">Monto</th>
@@ -582,7 +744,8 @@ function TablaPlazosFijosPendientes() {
               <th className="px-4 py-3 font-medium">Vencimiento</th>
               <th className="px-4 py-3 font-medium">Días restantes</th>
               <th className="px-4 py-3 font-medium">Interés proyectado</th>
-              <th className="px-4 py-3 font-medium">Total al vencimiento</th>
+              <th className="px-4 py-3 font-medium">Total proyectado</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -595,7 +758,10 @@ function TablaPlazosFijosPendientes() {
                 <td className="px-4 py-3 text-foreground-muted">{pf.plazoDias} días</td>
                 <td className="px-4 py-3 text-foreground-muted">{pf.fechaInicio}</td>
                 <td className="px-4 py-3 text-foreground-muted">
-                  {pf.fechaVencimiento}
+                  <span className="flex items-center gap-2">
+                    {pf.fechaVencimiento}
+                    <BadgeVencido fechaVencimiento={pf.fechaVencimiento} />
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-foreground-muted">
                   {diasRestantes(pf.fechaVencimiento)}
@@ -605,6 +771,15 @@ function TablaPlazosFijosPendientes() {
                 </td>
                 <td className="px-4 py-3 font-medium text-foreground">
                   {formatMonto(pf.monto + pf.interesEstimado, pf.divisa)}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setLiquidando(pf)}
+                    className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-muted"
+                  >
+                    Liquidar
+                  </button>
                 </td>
               </tr>
             ))}
@@ -625,6 +800,13 @@ function TablaPlazosFijosPendientes() {
         irAPagina={irAPagina}
       />
         </>
+      )}
+
+      {liquidando && (
+        <LiquidarPlazoFijoModal
+          plazoFijo={liquidando}
+          onClose={() => setLiquidando(null)}
+        />
       )}
     </>
   );
