@@ -64,11 +64,16 @@ async function elegirPortafolioPorDefecto(page: Page) {
   await selector.selectOption({ label: PORTAFOLIO_POR_DEFECTO });
 }
 
-/** Carga saldos iniciales en la cuenta indicada del portafolio activo. */
+/**
+ * Carga saldos iniciales en la cuenta indicada del portafolio activo. Desde
+ * OPS-BUG-05/US-05, "Guardar saldos iniciales" abre un modal de confirmación
+ * en vez de guardar directo — hay que confirmarlo ahí.
+ */
 async function cargarSaldoInicial(page: Page, cuenta: string, monto: string) {
   await page.goto("/cuenta");
   await page.getByLabel(cuenta).fill(monto);
   await page.getByRole("button", { name: "Guardar saldos iniciales" }).click();
+  await page.getByRole("button", { name: "Confirmar y Guardar" }).click();
   await expect(page.getByRole("button", { name: "Editar saldos" })).toBeVisible();
 }
 
