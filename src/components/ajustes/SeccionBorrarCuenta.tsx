@@ -86,7 +86,7 @@ export default function SeccionBorrarCuenta() {
     >
       <p className="text-xs text-foreground-muted">
         Antes de continuar, podés{" "}
-        <Link href="/historial" className="text-brand underline">
+        <Link href="/historial?tab=importar" className="text-brand underline">
           descargar tu historial
         </Link>{" "}
         para guardar una copia.

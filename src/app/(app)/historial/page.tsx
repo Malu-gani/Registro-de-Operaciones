@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
@@ -560,7 +561,12 @@ function GraficosPorDivisaSection() {
 }
 
 export default function HistorialPage() {
-  const [tab, setTab] = useState<TabId>("acciones");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const tabInicial =
+    tabParam && tabs.some((t) => t.id === tabParam) ? tabParam : "acciones";
+
+  const [tab, setTab] = useState<TabId>(tabInicial);
   const { trades } = useTrades();
   const { plazosFijos } = usePlazosFijos();
 
