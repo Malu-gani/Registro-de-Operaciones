@@ -151,13 +151,13 @@ export default function AccionesForm() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
+        className="@container flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
         <h2 className="text-sm font-semibold text-foreground">
           Nueva operación — Acciones
         </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2">
           {selectorField}
 
           <AssetAutocomplete
