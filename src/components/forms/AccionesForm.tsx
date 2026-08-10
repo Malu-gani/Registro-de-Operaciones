@@ -9,7 +9,7 @@ import { analizarRiesgoPosicionFija, fechaISOLocal } from "@/utils/riskCalculati
 import type { CuentaId, SubTipoAccion } from "@/types/trading";
 import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
-import { inputClasses, labelClasses } from "../formStyles";
+import { clasesGridColumnas, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes, precioOpcional } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -156,7 +156,7 @@ export default function AccionesForm() {
           Nueva operación — Acciones
         </h2>
 
-        <div className={`grid grid-cols-1 gap-4 ${dosColumnas ? "grid-cols-2" : ""}`}>
+        <div className={clasesGridColumnas(dosColumnas)}>
           {selectorField}
 
           <AssetAutocomplete

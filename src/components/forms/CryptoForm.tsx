@@ -9,7 +9,7 @@ import { analizarRiesgoApalancado, fechaISOLocal } from "@/utils/riskCalculation
 import type { CuentaId, SubTipoCrypto } from "@/types/trading";
 import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
-import { inputClasses, labelClasses } from "../formStyles";
+import { clasesGridColumnas, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes, precioOpcional } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -167,7 +167,7 @@ export default function CryptoForm() {
           Nueva operación — Cripto
         </h2>
 
-        <div className={`grid grid-cols-1 gap-4 ${dosColumnas ? "grid-cols-2" : ""}`}>
+        <div className={clasesGridColumnas(dosColumnas)}>
           {selectorField}
 
           <AssetAutocomplete
