@@ -696,6 +696,7 @@ export default function CuentaPage() {
             <SeccionesPortafolio
               portafolioId={portafolioActivoId}
               trades={trades}
+              plazosFijos={plazosFijos}
               mostrarLinkCuenta={false}
             />
           </section>

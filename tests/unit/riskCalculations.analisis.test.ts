@@ -6,7 +6,25 @@ import {
   calcularPnl,
   calcularRatioRiesgoBeneficio,
   plazoFijoVencido,
+  resumenPlazosFijosPorDivisa,
 } from "@/utils/riskCalculations";
+import type { PlazoFijo } from "@/types/trading";
+
+function plazoFijo(overrides: Partial<PlazoFijo>): PlazoFijo {
+  return {
+    id: "pf-1",
+    portafolioId: "portafolio-1",
+    monto: 1000,
+    divisa: "ARS",
+    tasaTna: 40,
+    plazoDias: 30,
+    fechaInicio: "2026-01-01",
+    fechaVencimiento: "2026-01-31",
+    interesEstimado: 33.15,
+    estado: "pendiente",
+    ...overrides,
+  };
+}
 
 describe("validación direccional de Stop Loss y Take Profit", () => {
   const base = { precioEntrada: 100, cantidad: 10 } as const;
@@ -254,5 +272,35 @@ describe("plazoFijoVencido", () => {
   // El huso de la suite está fijado en vitest.config.ts.
   test("un plazo que vence mañana NO está vencido a las 22:00 de hoy", () => {
     expect(plazoFijoVencido("2026-07-29")).toBe(false);
+  });
+});
+
+describe("resumenPlazosFijosPorDivisa", () => {
+  test("sin plazos fijos, no devuelve ninguna divisa", () => {
+    expect(resumenPlazosFijosPorDivisa([])).toEqual([]);
+  });
+
+  test("agrega capital e interés por divisa, solo con los no liquidados", () => {
+    const plazos = [
+      plazoFijo({ divisa: "ARS", monto: 1000, interesEstimado: 30, estado: "pendiente" }),
+      plazoFijo({ divisa: "ARS", monto: 500, interesEstimado: 15, estado: "pendiente" }),
+      plazoFijo({ divisa: "ARS", monto: 999, interesEstimado: 99, estado: "liquidado" }),
+      plazoFijo({ divisa: "USD", monto: 200, interesEstimado: 4, estado: "pendiente" }),
+    ];
+
+    expect(resumenPlazosFijosPorDivisa(plazos)).toEqual([
+      { divisa: "ARS", cantidad: 2, capital: 1500, interes: 45 },
+      { divisa: "USD", cantidad: 1, capital: 200, interes: 4 },
+    ]);
+  });
+
+  test("una divisa sin plazos activos no aparece en el resultado", () => {
+    const plazos = [
+      plazoFijo({ divisa: "ARS", monto: 1000, interesEstimado: 30, estado: "pendiente" }),
+    ];
+
+    expect(resumenPlazosFijosPorDivisa(plazos)).toEqual([
+      { divisa: "ARS", cantidad: 1, capital: 1000, interes: 30 },
+    ]);
   });
 });
