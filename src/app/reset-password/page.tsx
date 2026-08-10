@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import PasswordInput from "@/components/PasswordInput";
 import { REQUISITOS_PASSWORD_HINT } from "@/utils/passwordPolicy";
 import { establecerPassword } from "./actions";
 
@@ -45,8 +46,7 @@ export default async function ResetPasswordPage({
             <span className="text-xs font-medium text-foreground-muted">
               Contraseña nueva
             </span>
-            <input
-              type="password"
+            <PasswordInput
               name="password"
               required
               minLength={8}
@@ -61,8 +61,7 @@ export default async function ResetPasswordPage({
             <span className="text-xs font-medium text-foreground-muted">
               Repetir contraseña
             </span>
-            <input
-              type="password"
+            <PasswordInput
               name="confirmPassword"
               required
               minLength={8}

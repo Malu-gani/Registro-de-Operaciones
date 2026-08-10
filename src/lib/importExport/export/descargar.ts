@@ -1,3 +1,5 @@
+import { fechaISOLocal } from "@/utils/riskCalculations";
+
 /**
  * Dispara la descarga de un Blob en el navegador (patrón client-side estándar:
  * object URL + <a download> + revoke). Compartido por los exportadores.
@@ -15,6 +17,5 @@ export function descargarBlob(blob: Blob, nombreArchivo: string): void {
 
 /** Nombre de archivo con fecha del día: `historial-operaciones-2026-07-17.csv`. */
 export function nombreConFecha(base: string, extension: string): string {
-  const hoy = new Date().toISOString().slice(0, 10);
-  return `${base}-${hoy}.${extension}`;
+  return `${base}-${fechaISOLocal()}.${extension}`;
 }

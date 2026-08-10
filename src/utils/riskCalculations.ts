@@ -2,6 +2,7 @@ import type {
   TradeInputsApalancado,
   TradeInputsCantidadFija,
   RiskAnalysis,
+  PlazoFijo,
 } from "../types/trading";
 
 export type ClaseActivo = "acciones" | "cripto_spot" | "futuros";
@@ -297,4 +298,27 @@ export function fechaISOLocal(fecha: Date = new Date()): string {
  */
 export function plazoFijoVencido(fechaVencimiento: string): boolean {
   return fechaVencimiento <= fechaISOLocal();
+}
+
+/**
+ * Agrega capital colocado e interés proyectado por divisa (ARS/USD), solo de
+ * los plazos fijos no liquidados. Devuelve una entrada por divisa con al
+ * menos un plazo activo; omite las que no tienen ninguno.
+ */
+export function resumenPlazosFijosPorDivisa(
+  plazosFijos: PlazoFijo[]
+): { divisa: "ARS" | "USD"; cantidad: number; capital: number; interes: number }[] {
+  const activos = plazosFijos.filter((pf) => pf.estado !== "liquidado");
+
+  return (["ARS", "USD"] as const)
+    .map((divisa) => {
+      const items = activos.filter((pf) => pf.divisa === divisa);
+      return {
+        divisa,
+        cantidad: items.length,
+        capital: items.reduce((acc, pf) => acc + pf.monto, 0),
+        interes: items.reduce((acc, pf) => acc + pf.interesEstimado, 0),
+      };
+    })
+    .filter((r) => r.cantidad > 0);
 }

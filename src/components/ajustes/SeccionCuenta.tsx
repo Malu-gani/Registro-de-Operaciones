@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 import { inputClasses, labelClasses } from "@/components/formStyles";
 import { REQUISITOS_PASSWORD_HINT, validarPassword } from "@/utils/passwordPolicy";
 import SeccionAjustes from "./SeccionAjustes";
@@ -91,8 +92,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
       <p className="text-xs font-medium text-foreground">Cambiar contraseña</p>
       <label className="flex flex-col gap-1">
         <span className={labelClasses}>Contraseña actual</span>
-        <input
-          type="password"
+        <PasswordInput
           className={inputClasses}
           value={actual}
           onChange={(e) => setActual(e.target.value)}
@@ -102,8 +102,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className={labelClasses}>Nueva contraseña</span>
-          <input
-            type="password"
+          <PasswordInput
             className={inputClasses}
             value={nueva}
             onChange={(e) => setNueva(e.target.value)}
@@ -115,8 +114,7 @@ function CambiarPassword({ emailActual }: { emailActual: string }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className={labelClasses}>Repetir nueva contraseña</span>
-          <input
-            type="password"
+          <PasswordInput
             className={inputClasses}
             value={confirmar}
             onChange={(e) => setConfirmar(e.target.value)}

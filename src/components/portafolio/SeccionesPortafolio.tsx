@@ -7,7 +7,9 @@ import BarChart from "@/components/BarChart";
 import EquityCurve from "@/components/EquityCurve";
 import type { PieChartDatum } from "@/components/chartUtils";
 import { formatMonto, balanceFuturos } from "@/components/portafolio/utils";
-import type { Trade } from "@/types/trading";
+import { fechaISOLocal, resumenPlazosFijosPorDivisa } from "@/utils/riskCalculations";
+import KpiCard from "@/components/KpiCard";
+import type { PlazoFijo, Trade } from "@/types/trading";
 
 type PresetCurva = "1m" | "3m" | "6m" | "1a" | "custom";
 
@@ -24,7 +26,7 @@ function fechaDesdePreset(preset: PresetCurva): string | null {
   const meses = { "1m": 1, "3m": 3, "6m": 6, "1a": 12 }[preset];
   const d = new Date();
   d.setMonth(d.getMonth() - meses);
-  return d.toISOString().slice(0, 10);
+  return fechaISOLocal(d);
 }
 
 function agruparPorActivo(trades: Trade[]): PieChartDatum[] {
@@ -41,15 +43,25 @@ function SeccionDistribucion({
   data,
   divisa,
   mensajeVacio,
+  tabPosiciones,
 }: {
   titulo: string;
   data: PieChartDatum[];
   divisa: "USD" | "ARS" | "USDT";
   mensajeVacio: string;
+  tabPosiciones: string;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-surface p-6">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">{titulo}</h3>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{titulo}</h3>
+        <Link
+          href={`/posiciones-abiertas?tab=${tabPosiciones}`}
+          className="text-xs font-medium text-brand hover:underline"
+        >
+          Ver Posiciones Abiertas →
+        </Link>
+      </div>
       {data.length === 0 ? (
         <p className="text-sm text-foreground-muted">{mensajeVacio}</p>
       ) : (
@@ -117,14 +129,22 @@ function CuentaFuturosCard({
     <div className="rounded-xl border border-border bg-surface p-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="text-xs text-foreground-muted">Cuenta de Futuros</p>
-        {mostrarLinkCuenta && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           <Link
-            href="/cuenta?cuenta=usdt_futuros"
+            href="/posiciones-abiertas?tab=crypto-futuros"
             className="text-xs font-medium text-brand hover:underline"
           >
-            Ver detalle, depositar o retirar →
+            Ver Posiciones Abiertas →
           </Link>
-        )}
+          {mostrarLinkCuenta && (
+            <Link
+              href="/cuenta?cuenta=usdt_futuros"
+              className="text-xs font-medium text-brand hover:underline"
+            >
+              Ver detalle, depositar o retirar →
+            </Link>
+          )}
+        </div>
       </div>
       <p className="mt-3 text-xs text-foreground-muted">Saldo total</p>
       <p
@@ -212,14 +232,76 @@ function CuentaFuturosCard({
   );
 }
 
+/**
+ * Sección de Plazos Fijos en Distribución: el capital colocado no aparece en
+ * ninguna otra sección (no es una posición de mercado), así que sin esto
+ * queda invisible aunque el modal de borrar portafolio ya lo cuente. Mismo
+ * patrón de agregación por divisa que el Resumen (`resumenPlazosFijosPorDivisa`).
+ */
+function SeccionPlazosFijosDistribucion({ plazosFijos }: { plazosFijos: PlazoFijo[] }) {
+  const resumen = resumenPlazosFijosPorDivisa(plazosFijos);
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-foreground">Plazos Fijos</h2>
+        <Link
+          href="/posiciones-abiertas?tab=plazos-fijos"
+          className="text-xs font-medium text-brand hover:underline"
+        >
+          Ver Posiciones Abiertas →
+        </Link>
+      </div>
+
+      {resumen.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface p-6">
+          <p className="text-sm text-foreground-muted">
+            No tiene plazos fijos activos actualmente.
+          </p>
+        </div>
+      ) : (
+        resumen.map((r) => (
+          <div key={r.divisa} className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-foreground-muted">
+                {r.divisa}
+              </span>
+              <span className="text-xs text-foreground-muted">
+                {r.cantidad} {r.cantidad === 1 ? "plazo activo" : "plazos activos"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <KpiCard
+                label={`Capital colocado (${r.divisa})`}
+                value={formatMonto(r.capital, r.divisa)}
+              />
+              <KpiCard
+                label={`Interés proyectado (${r.divisa})`}
+                value={`+${formatMonto(r.interes, r.divisa)}`}
+                tone="positive"
+              />
+              <KpiCard
+                label={`Total al vencimiento (${r.divisa})`}
+                value={formatMonto(r.capital + r.interes, r.divisa)}
+              />
+            </div>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 /** Secciones de composición de un portafolio (distribución + Cuenta de Futuros). */
 export default function SeccionesPortafolio({
   portafolioId,
   trades,
+  plazosFijos,
   mostrarLinkCuenta,
 }: {
   portafolioId: string;
   trades: Trade[];
+  plazosFijos: PlazoFijo[];
   mostrarLinkCuenta: boolean;
 }) {
   const abiertas = trades.filter((t) => t.estado === "abierta");
@@ -247,12 +329,14 @@ export default function SeccionesPortafolio({
             data={cedears}
             divisa="ARS"
             mensajeVacio="No tiene CEDEARs abiertos actualmente."
+            tabPosiciones="cedears"
           />
           <SeccionDistribucion
             titulo="Acciones (USD)"
             data={accionesUsd}
             divisa="USD"
             mensajeVacio="No tiene acciones en USD abiertas actualmente."
+            tabPosiciones="acciones"
           />
         </div>
       </section>
@@ -265,6 +349,7 @@ export default function SeccionesPortafolio({
             data={cryptoSpot}
             divisa="USDT"
             mensajeVacio="No tiene posiciones spot abiertas actualmente."
+            tabPosiciones="crypto-spot"
           />
 
           <CuentaFuturosCard
@@ -274,6 +359,8 @@ export default function SeccionesPortafolio({
           />
         </div>
       </section>
+
+      <SeccionPlazosFijosDistribucion plazosFijos={plazosFijos} />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 import { signup } from "./actions";
 import { REQUISITOS_PASSWORD_HINT } from "@/utils/passwordPolicy";
 
@@ -43,8 +44,7 @@ export default async function SignupPage({
             <span className="text-xs font-medium text-foreground-muted">
               Contraseña
             </span>
-            <input
-              type="password"
+            <PasswordInput
               name="password"
               required
               minLength={8}
@@ -62,8 +62,7 @@ export default async function SignupPage({
             <span className="text-xs font-medium text-foreground-muted">
               Confirmar contraseña
             </span>
-            <input
-              type="password"
+            <PasswordInput
               name="confirmPassword"
               required
               minLength={8}
