@@ -43,15 +43,25 @@ function SeccionDistribucion({
   data,
   divisa,
   mensajeVacio,
+  tabPosiciones,
 }: {
   titulo: string;
   data: PieChartDatum[];
   divisa: "USD" | "ARS" | "USDT";
   mensajeVacio: string;
+  tabPosiciones: string;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-surface p-6">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">{titulo}</h3>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{titulo}</h3>
+        <Link
+          href={`/posiciones-abiertas?tab=${tabPosiciones}`}
+          className="text-xs font-medium text-brand hover:underline"
+        >
+          Ver Posiciones Abiertas →
+        </Link>
+      </div>
       {data.length === 0 ? (
         <p className="text-sm text-foreground-muted">{mensajeVacio}</p>
       ) : (
@@ -119,14 +129,22 @@ function CuentaFuturosCard({
     <div className="rounded-xl border border-border bg-surface p-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="text-xs text-foreground-muted">Cuenta de Futuros</p>
-        {mostrarLinkCuenta && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           <Link
-            href="/cuenta?cuenta=usdt_futuros"
+            href="/posiciones-abiertas?tab=crypto-futuros"
             className="text-xs font-medium text-brand hover:underline"
           >
-            Ver detalle, depositar o retirar →
+            Ver Posiciones Abiertas →
           </Link>
-        )}
+          {mostrarLinkCuenta && (
+            <Link
+              href="/cuenta?cuenta=usdt_futuros"
+              className="text-xs font-medium text-brand hover:underline"
+            >
+              Ver detalle, depositar o retirar →
+            </Link>
+          )}
+        </div>
       </div>
       <p className="mt-3 text-xs text-foreground-muted">Saldo total</p>
       <p
@@ -311,12 +329,14 @@ export default function SeccionesPortafolio({
             data={cedears}
             divisa="ARS"
             mensajeVacio="No tiene CEDEARs abiertos actualmente."
+            tabPosiciones="cedears"
           />
           <SeccionDistribucion
             titulo="Acciones (USD)"
             data={accionesUsd}
             divisa="USD"
             mensajeVacio="No tiene acciones en USD abiertas actualmente."
+            tabPosiciones="acciones"
           />
         </div>
       </section>
@@ -329,6 +349,7 @@ export default function SeccionesPortafolio({
             data={cryptoSpot}
             divisa="USDT"
             mensajeVacio="No tiene posiciones spot abiertas actualmente."
+            tabPosiciones="crypto-spot"
           />
 
           <CuentaFuturosCard
