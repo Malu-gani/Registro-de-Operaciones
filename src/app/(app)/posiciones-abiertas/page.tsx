@@ -7,7 +7,7 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import { FiltroChips } from "@/components/FiltroChips";
-import { calcularPnl, plazoFijoVencido } from "@/utils/riskCalculations";
+import { calcularPnl, fechaISOLocal, plazoFijoVencido } from "@/utils/riskCalculations";
 import { inputClasses, labelClasses } from "@/components/formStyles";
 import type {
   Divisa,
@@ -57,10 +57,6 @@ function formatCantidad(valor: number) {
   return formatoCantidad.format(valor);
 }
 
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 const MENSAJE_FECHA_INVALIDA =
   "La fecha de salida no puede ser anterior a la de entrada.";
 
@@ -75,7 +71,7 @@ function CerrarOperacionModal({
   const { refrescar } = useCuentas();
   const permiteCierreParcial = trade.tipoActivo === "acciones";
   const [precioSalida, setPrecioSalida] = useState("");
-  const [fechaSalida, setFechaSalida] = useState(hoyISO());
+  const [fechaSalida, setFechaSalida] = useState(fechaISOLocal());
   const [cantidadACerrar, setCantidadACerrar] = useState(String(trade.cantidad));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +105,7 @@ function CerrarOperacionModal({
       setError("Complete precio, fecha y cantidad de salida.");
       return;
     }
-    if (fechaSalida > hoyISO()) {
+    if (fechaSalida > fechaISOLocal()) {
       setError("La fecha no puede ser futura.");
       return;
     }
@@ -203,7 +199,7 @@ function CerrarOperacionModal({
             type="date"
             value={fechaSalida}
             min={trade.fechaEntrada}
-            max={hoyISO()}
+            max={fechaISOLocal()}
             onChange={(e) => setFechaSalida(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
           />
@@ -468,7 +464,7 @@ function TablaOperacionesAbiertas({
 }
 
 function diasRestantes(fechaVencimiento: string): number {
-  const hoy = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00`);
+  const hoy = new Date(`${fechaISOLocal()}T00:00:00`);
   const vencimiento = new Date(`${fechaVencimiento}T00:00:00`);
   return Math.round((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }

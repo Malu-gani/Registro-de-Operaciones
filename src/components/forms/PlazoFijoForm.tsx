@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useDosColumnas } from "@/hooks/useDosColumnas";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
-import { calcularPlazoFijo } from "@/utils/riskCalculations";
+import { calcularPlazoFijo, fechaISOLocal } from "@/utils/riskCalculations";
 import type { CuentaId } from "@/types/trading";
 import { inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
@@ -30,7 +30,7 @@ const estadoInicial: FormState = {
   divisa: "ARS",
   tasaTna: "",
   plazoDias: 30,
-  fechaInicio: new Date().toISOString().slice(0, 10),
+  fechaInicio: fechaISOLocal(),
   notas: "",
 };
 

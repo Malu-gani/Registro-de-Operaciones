@@ -7,6 +7,7 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { TODOS_LOS_PORTAFOLIOS, usePortafolios } from "@/context/PortafoliosContext";
 import { comprometidoPorCuenta } from "@/utils/cuentas";
+import { fechaISOLocal } from "@/utils/riskCalculations";
 import { cuentasDeMercado } from "@/utils/tipoMercado";
 import { useListaPaginada, ControlesListaPaginada } from "@/components/ListaPaginada";
 import SeccionesPortafolio from "@/components/portafolio/SeccionesPortafolio";
@@ -87,9 +88,6 @@ function BarraComprometido({
   );
 }
 
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /**
  * Redondea a 3 decimales solo para mostrar en el input de edición de saldos
@@ -297,7 +295,7 @@ function DepositoRetiro({
   const { depositarRetirar } = useCuentas();
   const [tipo, setTipo] = useState<"deposito" | "retiro">("deposito");
   const [monto, setMonto] = useState("");
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useState(fechaISOLocal());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -307,7 +305,7 @@ function DepositoRetiro({
       setError("Ingresá un monto válido.");
       return;
     }
-    if (fecha > hoyISO()) {
+    if (fecha > fechaISOLocal()) {
       setError("La fecha no puede ser futura.");
       return;
     }
@@ -361,7 +359,7 @@ function DepositoRetiro({
           type="date"
           className={inputClasses}
           value={fecha}
-          max={hoyISO()}
+          max={fechaISOLocal()}
           onChange={(e) => setFecha(e.target.value)}
         />
       </div>

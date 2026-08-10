@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fechaISOLocal } from "@/utils/riskCalculations";
 
 export type PresetFecha = "1m" | "2m" | "6m" | "1a" | "custom";
 
@@ -18,7 +19,7 @@ function fechaDesdePreset(preset: PresetFecha): string | null {
   const meses = { "1m": 1, "2m": 2, "6m": 6, "1a": 12 }[preset];
   const d = new Date();
   d.setMonth(d.getMonth() - meses);
-  return d.toISOString().slice(0, 10);
+  return fechaISOLocal(d);
 }
 
 interface FiltroFechaPreset {

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTrades } from "@/context/TradesContext";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
+import { fechaISOLocal } from "@/utils/riskCalculations";
 import EquityCurve from "@/components/EquityCurve";
 import type { Trade } from "@/types/trading";
 
@@ -72,7 +73,7 @@ function fechaDesdePreset(preset: Preset): string | null {
   const meses = { "1m": 1, "2m": 2, "6m": 6, "1a": 12 }[preset];
   const d = new Date();
   d.setMonth(d.getMonth() - meses);
-  return d.toISOString().slice(0, 10);
+  return fechaISOLocal(d);
 }
 
 function KpiCard({

@@ -7,6 +7,7 @@ import BarChart from "@/components/BarChart";
 import EquityCurve from "@/components/EquityCurve";
 import type { PieChartDatum } from "@/components/chartUtils";
 import { formatMonto, balanceFuturos } from "@/components/portafolio/utils";
+import { fechaISOLocal } from "@/utils/riskCalculations";
 import type { Trade } from "@/types/trading";
 
 type PresetCurva = "1m" | "3m" | "6m" | "1a" | "custom";
@@ -24,7 +25,7 @@ function fechaDesdePreset(preset: PresetCurva): string | null {
   const meses = { "1m": 1, "3m": 3, "6m": 6, "1a": 12 }[preset];
   const d = new Date();
   d.setMonth(d.getMonth() - meses);
-  return d.toISOString().slice(0, 10);
+  return fechaISOLocal(d);
 }
 
 function agruparPorActivo(trades: Trade[]): PieChartDatum[] {
