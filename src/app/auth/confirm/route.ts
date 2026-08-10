@@ -1,12 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { rutaInternaSegura } from "@/utils/rutaSegura";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Validado: `next` llega de la query y se concatena a la base del sitio.
+  const next = rutaInternaSegura(searchParams.get("next"));
 
   // Base del redirect desde NEXT_PUBLIC_SITE_URL (ver el mismo comentario que en
   // auth/callback: next start puede reportar mal el host).
