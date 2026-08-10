@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { rutaInternaSegura } from "@/utils/rutaSegura";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Validado: `next` llega de la query y se concatena a la base del sitio.
+  const next = rutaInternaSegura(searchParams.get("next"));
 
   // Base para el redirect: NEXT_PUBLIC_SITE_URL, no el origin de request.url.
   // `next start` puede reportar el host como "localhost" aunque el navegador
