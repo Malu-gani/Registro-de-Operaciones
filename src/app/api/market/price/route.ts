@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssetPrice } from "@/lib/marketData";
+import { exigirSesion } from "@/lib/apiAuth";
 
 export async function GET(req: NextRequest) {
+  const noAutorizado = await exigirSesion();
+  if (noAutorizado) return noAutorizado;
+
   const id = req.nextUrl.searchParams.get("id");
   const type = req.nextUrl.searchParams.get("type");
 
