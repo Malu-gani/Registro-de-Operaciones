@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validarPassword } from "@/utils/passwordPolicy";
+import { traducirErrorAuth } from "@/utils/authErrors";
 
 export async function signup(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
@@ -31,8 +32,10 @@ export async function signup(formData: FormData) {
     },
   });
 
+  // El mensaje crudo de Supabase viene en inglés y con detalle interno del
+  // proveedor: se traduce como en el resto de la app.
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?error=${encodeURIComponent(traducirErrorAuth(error.message))}`);
   }
 
   redirect(
