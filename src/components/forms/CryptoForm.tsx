@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useDosColumnas } from "@/hooks/useDosColumnas";
 import { useTrades } from "@/context/TradesContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { analizarRiesgoApalancado } from "@/utils/riskCalculations";
@@ -56,6 +57,7 @@ export default function CryptoForm() {
   const [error, setError] = useState<string | null>(null);
   const [fondosCuenta, setFondosCuenta] = useState<CuentaId | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const { ref: formRef, dosColumnas } = useDosColumnas<HTMLFormElement>(512);
 
   const setField = <K extends keyof FormState>(
     field: K,
@@ -161,14 +163,15 @@ export default function CryptoForm() {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
-        className="@container flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
+        className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
         <h2 className="text-sm font-semibold text-foreground">
           Nueva operación — Cripto
         </h2>
 
-        <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-4 ${dosColumnas ? "grid-cols-2" : ""}`}>
           {selectorField}
 
           <AssetAutocomplete
