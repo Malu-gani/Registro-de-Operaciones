@@ -7,7 +7,7 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { calcularPlazoFijo, fechaISOLocal } from "@/utils/riskCalculations";
 import type { CuentaId } from "@/types/trading";
-import { inputClasses, labelClasses } from "../formStyles";
+import { clasesGridColumnas, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -155,7 +155,7 @@ export default function PlazoFijoForm() {
           Nuevo plazo fijo
         </h2>
 
-        <div className={`grid grid-cols-1 gap-4 ${dosColumnas ? "grid-cols-2" : ""}`}>
+        <div className={clasesGridColumnas(dosColumnas)}>
           {selectorField}
 
           <label className="flex flex-col gap-1">
