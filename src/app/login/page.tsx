@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 import { login, reenviarConfirmacion } from "./actions";
 
 export default async function LoginPage({
@@ -66,8 +67,7 @@ export default async function LoginPage({
             <span className="text-xs font-medium text-foreground-muted">
               Contraseña
             </span>
-            <input
-              type="password"
+            <PasswordInput
               name="password"
               required
               minLength={8}

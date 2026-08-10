@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 import { inputClasses, labelClasses } from "@/components/formStyles";
 import SeccionAjustes from "./SeccionAjustes";
 
@@ -114,8 +115,7 @@ export default function SeccionBorrarCuenta() {
             <div className="mt-4 flex flex-col gap-3">
               <label className="flex flex-col gap-1">
                 <span className={labelClasses}>Ingresá tu contraseña</span>
-                <input
-                  type="password"
+                <PasswordInput
                   className={inputClasses}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
