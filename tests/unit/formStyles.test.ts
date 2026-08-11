@@ -1,42 +1,43 @@
 import { describe, expect, test } from "vitest";
-import { clasesGridColumnas } from "@/components/formStyles";
+import { clasesCamposFormulario } from "@/components/formStyles";
 
 /**
- * Los 3 formularios armaban la clase del grid como
- *   `grid grid-cols-1 gap-4 ${dosColumnas ? "grid-cols-2" : ""}`
- * y con `dosColumnas` en true el elemento quedaba con grid-cols-1 Y
- * grid-cols-2 a la vez. Andaba de casualidad: en el CSS que emite Tailwind
- * grid-cols-2 viene despues de grid-cols-1 y gana la cascada. Depender del
- * orden de emision de una herramienta no es una decision del codigo, asi que
- * la regla es que salga exactamente una clase de columnas.
+ * OPS-BUG-01: el grid de campos de los 3 formularios de alta salia a 2 columnas
+ * apretadas en dos Android reales (Xiaomi 13 Pro, Samsung A55 5G) y los campos
+ * se superponian. Fallaron CUATRO intentos, todos basados en decidir por ancho:
+ *
+ *   1. media query de viewport (`sm:grid-cols-2`)
+ *   2. container queries CSS (`@container` + `@lg:`)
+ *   3. medir el contenedor con ResizeObserver
+ *   4. tomar el menor entre contenedor y ventana
+ *
+ * Que el 4 tambien fallara probo que en esos dispositivos NINGUNA medida de
+ * ancho es confiable, ni la del contenedor ni la de la ventana. La conclusion
+ * es dejar de decidir por ancho: una sola columna, siempre.
+ *
+ * Este test fija esa decision. Si alguien vuelve a meter un breakpoint aca, lo
+ * agarra: cualquier `grid-cols-2`, `sm:`, `md:`, `lg:` o `@` reabre el bug.
  */
-describe("clasesGridColumnas", () => {
-  test("con dos columnas no arrastra la clase de una columna", () => {
-    const clases = clasesGridColumnas(true);
-
-    expect(clases).toContain("grid-cols-2");
-    expect(clases).not.toContain("grid-cols-1");
+describe("clasesCamposFormulario", () => {
+  test("declara una sola columna", () => {
+    expect(clasesCamposFormulario).toContain("grid-cols-1");
   });
 
-  test("con una columna no adelanta la clase de dos columnas", () => {
-    const clases = clasesGridColumnas(false);
-
-    expect(clases).toContain("grid-cols-1");
-    expect(clases).not.toContain("grid-cols-2");
+  test("no tiene ninguna variante de dos columnas", () => {
+    expect(clasesCamposFormulario).not.toContain("grid-cols-2");
   });
 
-  test("emite una sola clase de columnas, sea cual sea el caso", () => {
-    for (const dosColumnas of [true, false]) {
-      const cuantas = clasesGridColumnas(dosColumnas).match(/grid-cols-\d/g) ?? [];
+  test("no depende de ningun breakpoint de viewport ni de container", () => {
+    expect(clasesCamposFormulario).not.toMatch(/\b(sm|md|lg|xl):/);
+    expect(clasesCamposFormulario).not.toContain("@");
+  });
 
-      expect(cuantas).toHaveLength(1);
-    }
+  test("emite exactamente una clase de columnas", () => {
+    expect(clasesCamposFormulario.match(/grid-cols-\S+/g) ?? []).toHaveLength(1);
   });
 
   test("conserva el grid y el gap que compartian los 3 formularios", () => {
-    for (const dosColumnas of [true, false]) {
-      expect(clasesGridColumnas(dosColumnas)).toMatch(/(^|\s)grid(\s|$)/);
-      expect(clasesGridColumnas(dosColumnas)).toContain("gap-4");
-    }
+    expect(clasesCamposFormulario).toMatch(/(^|\s)grid(\s|$)/);
+    expect(clasesCamposFormulario).toContain("gap-4");
   });
 });

@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useDosColumnas } from "@/hooks/useDosColumnas";
 import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { calcularPlazoFijo, fechaISOLocal } from "@/utils/riskCalculations";
 import type { CuentaId } from "@/types/trading";
-import { clasesGridColumnas, inputClasses, labelClasses } from "../formStyles";
+import { clasesCamposFormulario, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -54,7 +53,6 @@ export default function PlazoFijoForm() {
   const [error, setError] = useState<string | null>(null);
   const [fondosCuenta, setFondosCuenta] = useState<CuentaId | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const { ref: formRef, dosColumnas } = useDosColumnas<HTMLFormElement>(512);
 
   const setField = <K extends keyof FormState>(
     field: K,
@@ -146,8 +144,7 @@ export default function PlazoFijoForm() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <form
-        ref={formRef}
+      <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
@@ -155,7 +152,7 @@ export default function PlazoFijoForm() {
           Nuevo plazo fijo
         </h2>
 
-        <div className={clasesGridColumnas(dosColumnas)}>
+        <div className={clasesCamposFormulario}>
           {selectorField}
 
           <label className="flex flex-col gap-1">
