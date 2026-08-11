@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useDosColumnas } from "@/hooks/useDosColumnas";
 import { useTrades } from "@/context/TradesContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { analizarRiesgoPosicionFija, fechaISOLocal } from "@/utils/riskCalculations";
 import type { CuentaId, SubTipoAccion } from "@/types/trading";
 import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
-import { clasesGridColumnas, inputClasses, labelClasses } from "../formStyles";
+import { clasesCamposFormulario, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes, precioOpcional } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -49,7 +48,6 @@ export default function AccionesForm() {
   const [error, setError] = useState<string | null>(null);
   const [fondosCuenta, setFondosCuenta] = useState<CuentaId | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const { ref: formRef, dosColumnas } = useDosColumnas<HTMLFormElement>(512);
 
   const setField = <K extends keyof FormState>(
     field: K,
@@ -147,8 +145,7 @@ export default function AccionesForm() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <form
-        ref={formRef}
+      <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
       >
@@ -156,7 +153,7 @@ export default function AccionesForm() {
           Nueva operación — Acciones
         </h2>
 
-        <div className={clasesGridColumnas(dosColumnas)}>
+        <div className={clasesCamposFormulario}>
           {selectorField}
 
           <AssetAutocomplete

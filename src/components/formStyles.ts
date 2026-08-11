@@ -3,14 +3,20 @@ export const inputClasses =
 export const labelClasses = "text-xs font-medium text-foreground-muted";
 
 /**
- * Clases del grid de campos que comparten los 3 formularios de alta, según lo
- * que midió `useDosColumnas`.
+ * Grid de campos que comparten los 3 formularios de alta: UNA columna, siempre.
  *
- * Emite UNA sola clase de columnas. Antes salían las dos juntas
- * (`grid-cols-1 ... grid-cols-2`) y andaba de casualidad: en el CSS que emite
- * Tailwind `grid-cols-2` viene después de `grid-cols-1` y gana la cascada. Cuál
- * de las dos gana no puede depender del orden de emisión de una herramienta.
+ * No lleva breakpoint a propósito (OPS-BUG-01). En dos Android reales el grid
+ * salía a 2 columnas apretadas con los campos superpuestos, y fallaron cuatro
+ * intentos de arreglarlo, todos decidiendo por ancho: media query de viewport,
+ * container queries CSS, medir el contenedor con ResizeObserver, y tomar el
+ * menor entre contenedor y ventana. Que el último también fallara probó que en
+ * esos dispositivos ninguna medida de ancho es confiable.
+ *
+ * Una columna no puede superponerse: no hay nada que medir mal. El costo es
+ * densidad en pantallas anchas, donde el formulario queda más largo. Se eligió
+ * a conciencia: el formulario ya vive en media pantalla junto al panel de
+ * riesgo, así que una columna de campos ahí es la disposición normal igual.
+ *
+ * Si alguien vuelve a meter un breakpoint acá, reabre el bug.
  */
-export function clasesGridColumnas(dosColumnas: boolean): string {
-  return `grid gap-4 ${dosColumnas ? "grid-cols-2" : "grid-cols-1"}`;
-}
+export const clasesCamposFormulario = "grid grid-cols-1 gap-4";
