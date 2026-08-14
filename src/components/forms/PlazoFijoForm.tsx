@@ -6,7 +6,7 @@ import { usePlazosFijos } from "@/context/PlazosFijosContext";
 import { useCuentas } from "@/context/CuentasContext";
 import { calcularPlazoFijo, fechaISOLocal } from "@/utils/riskCalculations";
 import type { CuentaId } from "@/types/trading";
-import { clasesCamposFormulario, inputClasses, labelClasses } from "../formStyles";
+import { clasesCamposFormulario, clasesLayoutFormulario, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -143,7 +143,7 @@ export default function PlazoFijoForm() {
     : null;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className={clasesLayoutFormulario}>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"

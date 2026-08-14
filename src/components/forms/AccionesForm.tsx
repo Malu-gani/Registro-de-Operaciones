@@ -8,7 +8,7 @@ import { analizarRiesgoPosicionFija, fechaISOLocal } from "@/utils/riskCalculati
 import type { CuentaId, SubTipoAccion } from "@/types/trading";
 import AssetAutocomplete from "../AssetAutocomplete";
 import RiskPanel from "../RiskPanel";
-import { clasesCamposFormulario, inputClasses, labelClasses } from "../formStyles";
+import { clasesCamposFormulario, clasesLayoutFormulario, inputClasses, labelClasses } from "../formStyles";
 import { usePortafolioDestino } from "./usePortafolioDestino";
 import { mensajeCamposFaltantes, precioOpcional } from "./formValidation";
 import { admiteOperacion, mensajeOperacionNoAdmitida } from "@/utils/tipoMercado";
@@ -144,7 +144,7 @@ export default function AccionesForm() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className={clasesLayoutFormulario}>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
