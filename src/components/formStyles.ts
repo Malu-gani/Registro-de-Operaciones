@@ -20,3 +20,18 @@ export const labelClasses = "text-xs font-medium text-foreground-muted";
  * Si alguien vuelve a meter un breakpoint acá, reabre el bug.
  */
 export const clasesCamposFormulario = "grid grid-cols-1 gap-4";
+
+/**
+ * Layout externo de los 3 formularios de alta: el formulario y el panel de
+ * riesgo, apilados siempre.
+ *
+ * Tampoco lleva breakpoint, por lo mismo (OPS-BUG-01). Antes era
+ * `lg:grid-cols-2`, una media query de viewport — el mismo patrón del primer
+ * intento fallido. Con el viewport reportado inflado, en el teléfono el
+ * formulario y el panel salían lado a lado y el formulario quedaba aplastado a
+ * media pantalla, que es el síntoma que se veía.
+ *
+ * Costo asumido: en pantallas anchas el panel de riesgo pasa a ir debajo del
+ * formulario en vez de al costado.
+ */
+export const clasesLayoutFormulario = "grid grid-cols-1 gap-6";
