@@ -11,12 +11,17 @@ import { clasesCamposFormulario, clasesLayoutFormulario } from "@/components/for
  *   3. medir el contenedor con ResizeObserver
  *   4. tomar el menor entre contenedor y ventana
  *
- * Que el 4 tambien fallara probo que en esos dispositivos NINGUNA medida de
- * ancho es confiable, ni la del contenedor ni la de la ventana. La conclusion
- * es dejar de decidir por ancho: una sola columna, siempre.
+ * CORRECCION IMPORTANTE: de ahi se concluyo que "ninguna medida de ancho es
+ * confiable en esos dispositivos". Era FALSO. La causa real eran los
+ * `col-span-2` que quedaban en los campos, que dentro de un `grid-cols-1`
+ * crean una segunda columna implicita y aplastan la primera. No dependia del
+ * ancho ni del dispositivo. Ver `tests/unit/formColSpan.test.ts`, que es el
+ * test que fija la causa de verdad.
  *
- * Este test fija esa decision. Si alguien vuelve a meter un breakpoint aca, lo
- * agarra: cualquier `grid-cols-2`, `sm:`, `md:`, `lg:` o `@` reabre el bug.
+ * Este archivo sigue fijando la decision de una sola columna, que es la que
+ * esta en produccion hoy. Ya no es la unica solucion posible: quitados los
+ * col-span, dos columnas en pantallas anchas volvio a ser viable. Si se
+ * cambia, se cambian estos tests a conciencia y se valida en un Android real.
  */
 describe("clasesCamposFormulario", () => {
   test("declara una sola columna", () => {

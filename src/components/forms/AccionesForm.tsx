@@ -243,7 +243,7 @@ export default function AccionesForm() {
             />
           </label>
 
-          <label className="col-span-2 flex flex-col gap-1">
+          <label className="flex flex-col gap-1">
             <span className={labelClasses}>Notas</span>
             <textarea
               className={inputClasses}
