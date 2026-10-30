@@ -75,6 +75,12 @@ export default function SeccionBorrarCuenta() {
 
     // 3. Cerramos sesión y volvemos al login con un mensaje.
     await supabase.auth.signOut();
+    // Navegación dura a propósito: `router.push()` navega del lado del cliente
+    // y deja vivos los contextos (Trades, Cuentas, Preferencias), que todavía
+    // tienen en memoria los datos de la cuenta recién borrada. Recargar la
+    // página entera garantiza que no quede nada. La regla de Next que pide
+    // router.push() no distingue este caso.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href =
       "/login?message=" + encodeURIComponent("Tu cuenta fue eliminada.");
   };
