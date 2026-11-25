@@ -3,7 +3,7 @@
 -- Para qué sirven: después de correr una migración en la nube, confirmar con la
 -- base real que quedó como se esperaba, sin depender de la memoria. Las
 -- consultas 1 a 7 se corrieron a mano el 2026-11-25 para cerrar las
--- migraciones 019 a 022.
+-- migraciones 019 a 022; la 9 sale de una verificación de las 015 y 016.
 --
 -- Cómo usarlas en el SQL Editor de Supabase:
 --   1. Abrí una consulta NUEVA (botón "+"; no uses /sql/new, que reabre el
@@ -142,3 +142,25 @@ join pg_class c on c.oid = t.tgrelid
 where not t.tgisinternal
   and c.relnamespace::regnamespace::text in ('public', 'auth')
 order by 1, 2, 3;
+
+-- ============================================================================
+-- 9. Validaciones de parámetros en las RPC de operaciones (migraciones 015 y 016)
+-- ============================================================================
+-- ESPERADO: 3 filas.
+--   abrir_operacion  | true | false
+--   abrir_plazo_fijo | true | false
+--   cerrar_operacion | true | true
+-- `valida_monto` busca el error MONTO_INVALIDO en el cuerpo de la función y
+-- `valida_fecha` busca FECHA_INVALIDA (fecha de salida anterior a la de
+-- entrada, solo aplica a cerrar_operacion). Si alguna dice false donde se
+-- espera true, la función quedó con una versión vieja y confía en el cliente:
+-- cualquier usuario logueado podría llamarla por la API con montos negativos.
+-- Es un chequeo por texto del código, no reemplaza a las pruebas SQL.
+select p.proname as funcion,
+       p.prosrc like '%MONTO_INVALIDO%' as valida_monto,
+       p.prosrc like '%FECHA_INVALIDA%' as valida_fecha
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('abrir_operacion', 'cerrar_operacion', 'abrir_plazo_fijo')
+order by p.proname;
