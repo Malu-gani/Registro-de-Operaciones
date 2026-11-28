@@ -19,7 +19,7 @@ Producción: https://registro-de-operaciones-chi.vercel.app
 
 ### 1. Diseño de la suite: primero el papel, después el código (2026-07-29)
 
-- Flujo **brainstorming → spec → plan → ejecución**, con documentos versionados en el repo:
+- Flujo **brainstorming → spec → plan → ejecución**, con documentos que se versionaron en el repo y se sacaron el 2026-07-30 al prepararlo para hacerlo público (el criterio de diseño pasó a `docs/testing.md`):
   - `docs/superpowers/specs/2026-07-29-suite-de-pruebas-design.md` (diseño)
   - `docs/superpowers/plans/2026-07-29-suite-de-pruebas.md` (plan de 16 tareas con el código de cada test)
 - **Criterio de priorización P0–P3 por consecuencia de la falla**, no por facilidad de testear.
@@ -94,7 +94,7 @@ Producción: https://registro-de-operaciones-chi.vercel.app
 - **Gotcha de PRs apilados:** mergear el PR base con `--delete-branch` hace que GitHub **cierre** el PR hijo en vez de reapuntarlo a `main`.
 - **Debugging sistemático antes de tocar nada** ante cualquier test que falle. Evitó dos parches equivocados en una sola sesión. Y la contracara: cuando una intermitencia apareció **una vez** y no se pudo reproducir en 6 corridas seguidas, **no se tocó nada sin evidencia**.
 - **Memoria de proyecto persistente** (índice + archivos por tema) + skills `/arranca` y `/cerrar` para que cada sesión empiece con contexto y termine auditada.
-- **Documentación versionada con el código**: `docs/architecture.md`, `docs/financial-logic.md`, `docs/testing.md`, `docs/despliegue-gratuito.md`, specs y planes.
+- **Documentación versionada con el código**: `docs/architecture.md`, `docs/financial-logic.md`, `docs/testing.md`, `docs/despliegue-gratuito.md`.
 
 ### 9. Gestión de bugs y user stories en Notion (desde 2026-08-08)
 
@@ -137,8 +137,11 @@ Producción: https://registro-de-operaciones-chi.vercel.app
 - **Next 16.4.3 → 16.4.6 (PR #57)** por 7 avisos moderados. Antes de actualizar se revisó si el código usaba las funciones afectadas (`use cache`, `next/image`, Edge): no, riesgo bajo. Después se comprobó a mano el login, la navegación y el flujo de Nueva Operación.
 - **vitest 3.2.7 → 4.1.12 (PR #58)** por 2 críticos de desarrollo. El ticket pedía la versión 5, pero **el repo estaba en la 3, no en la 4**, y `npm audit` indicaba "salto mayor a 5.1.1". Simulado en una copia temporal: la 4.1.12 ya cierra los críticos (dejó de depender de `tinypool`) y la 5.1.1 ni instala (conflicto de dependencias). Lección: **verificar en una copia temporal, no creerle al `fixAvailable` de `npm audit`**. Se mergeó con 258 pruebas unitarias y de componentes y 70 SQL en verde (la suite SQL, 4 veces seguidas sin intermitencia), build y lint.
 - **Un PR por cambio de dependencias**, sin mezclarlos con otros cambios, para poder revertir uno sin tocar el resto.
+- **`npm audit fix` (PR #60):** de 15 avisos a 0, cambiando solo el lockfile.
+- **Migración 022 (PR #61):** permisos mínimos sobre las tablas (`anon` sin ninguno; `authenticated` solo con `select`, `insert`, `update` y `delete`). Sumó las 91 pruebas de `tests/sql/permisosTablas.test.ts`, y la suite SQL pasó de 70 a 161.
+- **`supabase/verificacion.sql` (PR #62):** consultas para verificar el estado de la base.
 - **Limpieza de ramas verificada contra los PRs.** Se borraron 43 ramas (16 locales y 27 remotas) verificando cada una con `gh pr list --head` y no con `git branch --merged`, que con squash-merge las reporta como no mergeadas.
-- **Qué queda:** 15 avisos de `npm audit` (0 críticos, 7 altos), un `npm audit fix` pendiente sobre dependencias transitivas y evaluar vitest 5 cuando sus dependencias lo permitan.
+- **Qué queda:** evaluar vitest 5 cuando sus dependencias lo permitan.
 
 ---
 
@@ -158,4 +161,4 @@ Producción: https://registro-de-operaciones-chi.vercel.app
 
 **Gestión:** tickets de bugs y user stories con criterios de aceptación y estados · TDD en los fixes · un PR por cambio · verificación en una copia temporal antes de actualizar dependencias · diagnóstico midiendo en vez de deducir.
 
-**Números:** al cierre de julio, 275 pruebas (186 unit + 18 componentes + 66 SQL + 5 E2E, luego 9 E2E) · 10 defectos encontrados y **10 arreglados** · 2 de severidad P0 que permitían **crear dinero** · lint de 161 → 0 errores. Al 2026-11-25: 258 pruebas unitarias y de componentes + 70 SQL (más los E2E) · 21 migraciones SQL versionadas · PRs #31 a #58 · 1 vulnerabilidad explotable propia (open redirect) cerrada · `npm audit` en 15 avisos, 0 críticos.
+**Números:** al cierre de julio, 275 pruebas (186 unit + 18 componentes + 66 SQL + 5 E2E, luego 9 E2E) · 10 defectos encontrados y **10 arreglados** · 2 de severidad P0 que permitían **crear dinero** · lint de 161 → 0 errores. Al cierre del 2026-11-25: 428 pruebas (236 unitarias + 22 de componentes + 161 SQL + 9 E2E; fuente en `docs/testing.md`) · `schema.sql` + migraciones 002 a 022 versionadas · PRs #31 a #62 · 1 vulnerabilidad explotable propia (open redirect) cerrada · `npm audit` en 0 avisos.
