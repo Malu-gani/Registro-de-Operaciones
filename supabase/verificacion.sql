@@ -3,7 +3,8 @@
 -- Para qué sirven: después de correr una migración en la nube, confirmar con la
 -- base real que quedó como se esperaba, sin depender de la memoria. Las
 -- consultas 1 a 7 se corrieron a mano el 2026-11-25 para cerrar las
--- migraciones 019 a 022; la 9 sale de una verificación de las 015 y 016.
+-- migraciones 019 a 022; la 9 sale de una verificación de las 015 y 016; la 10
+-- y la 11 acompañan a la 023.
 --
 -- Cómo usarlas en el SQL Editor de Supabase:
 --   1. Abrí una consulta NUEVA (botón "+"; no uses /sql/new, que reabre el
@@ -164,3 +165,84 @@ join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
   and p.proname in ('abrir_operacion', 'cerrar_operacion', 'abrir_plazo_fijo')
 order by p.proname;
+
+-- ============================================================================
+-- 10. Bloqueo de fila al cerrar y al liquidar (migración 023)
+-- ============================================================================
+-- ESPERADO: 2 filas, las dos con bloquea_la_fila = true.
+--   cerrar_operacion    | true
+--   liquidar_plazo_fijo | true
+-- Si alguna dice false, la 023 no se aplicó o se volvió a correr después la 016
+-- o la 018, que reemplazan la función por la versión sin bloqueo. Es un chequeo
+-- por texto del código, no reemplaza a las pruebas SQL.
+select p.proname as funcion,
+       p.prosrc ~* 'where id = p_(op_)?id for update' as bloquea_la_fila
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('cerrar_operacion', 'liquidar_plazo_fijo')
+order by p.proname;
+
+-- ============================================================================
+-- 11. Cierres o liquidaciones acreditados de más (migración 023)
+-- ============================================================================
+-- ESPERADO: 0 filas.
+-- Cada fila es un grupo de movimientos que tiene más acreditaciones de las que
+-- justifican los registros:
+--   * plazo_liquidacion: un plazo fijo se liquida una sola vez, así que
+--     `esperados` es 1.
+--   * cierre: cada movimiento tiene que corresponder a una operación cerrada del
+--     mismo portafolio, activo y fecha, cuyo costo + resultado dé ese monto. Los
+--     cierres parciales repiten `ref_operacion_id` de forma legítima, por eso
+--     no alcanza con contar referencias repetidas.
+-- `movimientos` es lo que hay en el ledger y `esperados` lo que debería haber.
+-- Si aparecen filas, revisarlas antes de tocar nada: una operación editada o
+-- borrada a mano después de cerrada también aparece acá.
+with liquidaciones as (
+  select 'plazo_liquidacion' as tipo,
+         portafolio_id,
+         ref_operacion_id::text as referencias,
+         null::text as activo,
+         min(fecha) as fecha,
+         sum(monto) as total_acreditado,
+         count(*) as movimientos,
+         1::bigint as esperados
+  from movimientos_cuenta
+  where tipo = 'plazo_liquidacion'
+  group by portafolio_id, ref_operacion_id
+),
+cierres_agrupados as (
+  select portafolio_id,
+         string_agg(distinct ref_operacion_id::text, ', ') as referencias,
+         notas as activo,
+         fecha,
+         round(monto, 6) as monto,
+         sum(monto) as total_acreditado,
+         count(*) as movimientos
+  from movimientos_cuenta
+  where tipo = 'cierre'
+  group by portafolio_id, notas, fecha, round(monto, 6)
+),
+cierres as (
+  select 'cierre' as tipo,
+         c.portafolio_id,
+         c.referencias,
+         c.activo,
+         c.fecha,
+         c.total_acreditado,
+         c.movimientos,
+         (select count(*)
+            from operaciones o
+           where o.portafolio_id = c.portafolio_id
+             and o.activo = c.activo
+             and o.estado = 'cerrada'
+             and o.fecha_salida = c.fecha
+             and round((o.cantidad * o.precio_entrada)
+                         / greatest(coalesce(o.apalancamiento, 1), 1)
+                       + o.resultado_pnl, 6) = c.monto) as esperados
+  from cierres_agrupados c
+)
+select * from liquidaciones where movimientos > esperados
+union all
+select * from cierres where movimientos > esperados
+order by tipo, fecha;
