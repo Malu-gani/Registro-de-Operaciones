@@ -1,21 +1,22 @@
 # Suite de pruebas
 
-Al 2026-11-25 son **428 pruebas**.
+Al 2026-11-28 son **433 pruebas**.
 
-| Tipo | Archivos | Pruebas al 2026-11-25 | Cierre de julio de 2026 |
+| Tipo | Archivos | Pruebas al 2026-11-28 | Cierre de julio de 2026 |
 |---|---|---|---|
 | Unitarias | 17 | 236 | 186 |
 | Componentes | 3 | 22 | 18 |
-| Integración contra Postgres | 8 | 161 | 66 |
+| Integración contra Postgres | 9 | 166 | 66 |
 | End-to-end | 2 | 9 | 5 |
-| **Total** | **30** | **428** | **275** |
+| **Total** | **31** | **433** | **275** |
 
-- **Fuente de las cifras actuales:** la
+- **Fuente de las cifras actuales:** unitarias, componentes e integración,
+  corridas locales del 2026-11-28 sobre el cambio del pull request #64.
+  End-to-end, la
   [corrida de CI 45674446992](https://github.com/Malu-gani/Registro-de-Operaciones/actions/runs/45674446992)
-  (pull request #62, 2026-11-25), cuyo código es el mismo que quedó en `main`
-  en el commit `11a83ad`.
+  (pull request #62, 2026-11-25); el #64 no toca esos tests.
 - **Qué se cuenta:** casos ejecutados; cada caso de una tabla (`test.each` o un
-  bucle) suma uno. De las 161 de integración, 91 son de
+  bucle) suma uno. De las 166 de integración, 91 son de
   `permisosTablas.test.ts`, casi todas combinaciones de rol, tabla y
   privilegio.
 - **La columna de julio es histórica:** son las 275 con las que se terminó de
@@ -83,14 +84,17 @@ ya hay algo respondiendo en el 3100, Playwright lo reutiliza.
   `/api/market`, la acción de registro y las clases de layout de los
   formularios.
 - `tests/componentes/` — `useListaPaginada`, `RiskPanel` y `PasswordInput`.
-- `tests/sql/` — las 6 RPC de saldos, RLS, el invariante contable y los permisos
-  de tabla (migración 022).
+- `tests/sql/` — las 6 RPC de saldos, RLS, el invariante contable, los permisos
+  de tabla (migración 022) y las llamadas superpuestas sobre una misma operación
+  o plazo fijo (`concurrencia.test.ts`, migración 023).
 - `tests/e2e/` — en navegador: `flujos.spec.ts` (5 flujos de negocio) y
   `verificacion-email.spec.ts` (4: confirmación del registro, reenvío,
   recuperación de contraseña y respuesta neutra ante un email inexistente). Los
   mails se leen del atrapa-mails local, en el puerto 54324.
 - `tests/setup/` — preparación compartida: conexión con Supabase local, usuarios
-  de prueba y jsdom.
+  de prueba, jsdom y `filaRetenida.ts`, que superpone llamadas de forma
+  determinista: retiene una fila desde una sesión de `psql`, lanza las llamadas
+  y la libera cuando están todas en espera.
 
 Los tests que escriben datos usan usuarios propios: el aislamiento lo da RLS, no
 un truncate entre tests, así que pueden correr en paralelo. La matriz de
@@ -191,13 +195,16 @@ haberlo decidido va aparte, en [Huecos conocidos](#huecos-conocidos).
 | Crash de React al traducir con el navegador | No se puede automatizar de forma honesta: depende de que Google Translate reescriba el DOM. Es un caso manual, sin pasos de reproducción escritos en el repo. La regla para evitarlo (cambiar clases, no insertar ni quitar nodos) está comentada en `globals.css`. |
 | Cada migración por separado | Se prueba el estado final aplicándolas todas en orden, que es el escenario real de despliegue. |
 | Accesibilidad | Fuera de esta suite. Hay hallazgos de Lighthouse pendientes de decisión, que merecen su propio trabajo. |
-| Concurrencia real entre dos sesiones sobre la misma cuenta | Exige orquestar dos sesiones simultáneas. La aceptación original se apoyaba en que las RPC toman bloqueo de fila (`select ... for update`). Eso vale para `registrar_movimiento_cuenta`, `abrir_operacion` y `abrir_plazo_fijo`, no para todas las RPC de saldos, así que la decisión queda pendiente de revisión. |
 
 ## Huecos conocidos
 
 Revisados contra los tests el 2026-11-28. No son decisiones de alcance: falta
 cubrirlos.
 
+- La concurrencia se prueba solo en `cerrar_operacion` y `liquidar_plazo_fijo`
+  (migración 023). `registrar_movimiento_cuenta`, `abrir_operacion` y
+  `abrir_plazo_fijo` bloquean la fila del saldo con `select ... for update`,
+  pero ningún test lo ejercita.
 - `delete_own_account` (migración 013) no tiene test.
 - `liquidar_plazo_fijo` se prueba sin el interés real que agregó la migración
   018.
